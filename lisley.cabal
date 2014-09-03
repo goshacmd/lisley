@@ -1,0 +1,18 @@
+name:                lisley
+version:             0.1.0.0
+homepage:            https://github.com/goshakkk/lisley
+license:             MIT
+license-file:        LICENSE
+author:              Gosha Arinich
+maintainer:          me@goshakkk.name
+category:            Development
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable lisley
+  main-is: Main.hs
+  hs-source-dirs: src
+  -- other-modules:
+  -- other-extensions:
+  build-depends: base >=4.7 && <4.8
+  default-language: Haskell2010
