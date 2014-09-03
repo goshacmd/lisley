@@ -18,7 +18,7 @@ data LispError = NumArgs Integer [Expr]
                | BadSpecialForm String Expr
                | Parser ParseError
 
-type ThrowsError = Either LispError
+type Action = Either LispError
 
 showExpr :: Expr -> String
 showExpr (Atom a)   = a
