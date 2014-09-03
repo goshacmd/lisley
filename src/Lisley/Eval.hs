@@ -27,6 +27,7 @@ eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badFo
 apply :: Env -> Expr -> [Expr] -> Action Expr
 apply env (PrimitiveFunction f)          args = f args
 apply env (Function params body closure) args = forceArity (length params) args >> eval ((zip params args) ++ env) body
+apply env f                              args = throwError $ NotFunction "Not a function" "<fn>"
 
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, PrimitiveFunction f))
@@ -99,7 +100,3 @@ unpackBool v        = throwError $ TypeMismatch "bool" v
 atomName :: Expr -> Action String
 atomName (Atom a) = return a
 atomName v        = throwError $ TypeMismatch "atom" v
-
-runFunction :: Expr -> [Expr] -> Action Expr
-runFunction (PrimitiveFunction f) = f
-runFunction _ = const (throwError $ NotFunction "Not a function" "<fn>")
