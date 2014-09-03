@@ -99,4 +99,4 @@ unpackBool v        = throwError $ TypeMismatch "bool" v
 
 atomName :: Expr -> Action String
 atomName (Atom a) = return a
-atomName v        = throwError $ TypeMismatch "atom" v
+atomName v        = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
