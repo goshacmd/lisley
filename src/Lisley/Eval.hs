@@ -35,7 +35,8 @@ builtins = [("+", numNumFn (+)),
             ("or", boolBoolFn (&&)),
             ("first", first),
             ("rest", rest),
-            ("conj", conj)]
+            ("conj", conj),
+            ("cons", cons)]
 
 first :: [Expr] -> ThrowsError Expr
 first [List (x:xs)] = return x
@@ -51,6 +52,11 @@ conj :: [Expr] -> ThrowsError Expr
 conj [List xs, v] = return $ List (v:xs)
 conj [badArg, v]  = throwError $ TypeMismatch "list" badArg
 conj badSingleArg = throwError $ NumArgs 2 badSingleArg
+
+cons :: [Expr] -> ThrowsError Expr
+cons [v, List xs] = return $ List (v:xs)
+cons [badArg, v]  = throwError $ TypeMismatch "list" badArg
+cons badSingleArg = throwError $ NumArgs 2 badSingleArg
 
 numNumFn = binFn unpackNumber Number
 numBoolFn = binFn unpackNumber Bool
