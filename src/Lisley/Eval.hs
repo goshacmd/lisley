@@ -63,7 +63,7 @@ conj badSingleArg   = throwError $ ArityError 2 badSingleArg
 cons :: Fn
 cons [v, List xs]   = return $ List (v:xs)
 cons [v, Vector xs] = return $ List (v:xs)
-cons [badArg, v]    = throwError $ TypeMismatch "list" badArg
+cons [v, badArg]    = throwError $ TypeMismatch "list" badArg
 cons badSingleArg   = throwError $ ArityError 2 badSingleArg
 
 numNumFn = binFn unpackNumber Number
