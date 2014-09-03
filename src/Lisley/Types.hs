@@ -14,7 +14,8 @@ data Expr = Atom String
           | Number Int
           | String String
           | Bool Bool
-          | Function Fn
+          | PrimitiveFunction Fn
+          | Function { params :: [String], body :: Expr, closure :: Env }
 
 data LispError = ArityError Int [Expr]
                | TypeMismatch String Expr
@@ -28,13 +29,14 @@ type Action = Either LispError
 type Env = [(String, Expr)]
 
 showExpr :: Expr -> String
-showExpr (Atom a)     = a
-showExpr (Number n)   = show n
-showExpr (String s)   = show s
-showExpr (Bool b)     = if b then "true" else "false"
-showExpr (List xs)    = "(" ++ unwordsCol xs ++ ")"
-showExpr (Vector xs)  = "[" ++ unwordsCol xs ++ "]"
-showExpr (Function _) = "<fn>"
+showExpr (Atom a)                 = a
+showExpr (Number n)               = show n
+showExpr (String s)               = show s
+showExpr (Bool b)                 = if b then "true" else "false"
+showExpr (List xs)                = "(" ++ unwordsCol xs ++ ")"
+showExpr (Vector xs)              = "[" ++ unwordsCol xs ++ "]"
+showExpr (PrimitiveFunction _)    = "<primitive fn>"
+showExpr (Function params body _) = "(fn [" ++ unwords params ++ "] " ++ show body ++ ")"
 
 instance Show Expr where show = showExpr
 

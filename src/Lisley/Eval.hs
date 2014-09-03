@@ -10,7 +10,7 @@ eval env b@(Bool _)   = return b
 eval env v@(Vector _) = return v
 eval env (List [Atom "fn", Vector params, body]) = do
   bindings <- argsVector params
-  return . Function $ \args -> forceArity (length params) args >> eval ((zip bindings args) ++ env) body
+  return $ Function bindings body env
 eval env (List [Atom "quote", v]) = return v
 eval env (List [Atom "if", pred, conseq, alt]) = do
   result <- eval env pred
@@ -20,12 +20,16 @@ eval env (List [Atom "if", pred, conseq, alt]) = do
 eval env (List (fn : args)) = do
   f <- eval env fn
   params <- mapM (eval env) args
-  (runFunction f) params
+  apply env f params
 eval env (Atom a) = maybe (throwError $ UnboundSymbol a) return $ lookup a env
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
+apply :: Env -> Expr -> [Expr] -> Action Expr
+apply env (PrimitiveFunction f)          args = f args
+apply env (Function params body closure) args = forceArity (length params) args >> eval ((zip params args) ++ env) body
+
 builtins :: [(String, Expr)]
-builtins = map (\(n, f) -> (n, Function f))
+builtins = map (\(n, f) -> (n, PrimitiveFunction f))
   [("+", numNumFn (+)),
    ("-", numNumFn (-)),
    ("*", numNumFn (*)),
@@ -97,5 +101,5 @@ atomName (Atom a) = return a
 atomName v        = throwError $ TypeMismatch "atom" v
 
 runFunction :: Expr -> [Expr] -> Action Expr
-runFunction (Function f) = f
+runFunction (PrimitiveFunction f) = f
 runFunction _ = const (throwError $ NotFunction "Not a function" "<fn>")
