@@ -4,12 +4,18 @@ import Lisley.Types
 import Data.Maybe (maybe)
 
 eval :: Expr -> ThrowsError Expr
-eval n@(Number _)             = return n
-eval s@(String _)             = return s
-eval b@(Bool _)               = return b
+eval n@(Number _) = return n
+eval s@(String _) = return s
+eval b@(Bool _)   = return b
 eval (List [Atom "quote", v]) = return v
-eval (List (Atom fn : args))  = mapM eval args >>= apply fn
-eval badForm                  = throwError $ BadSpecialForm "Unrecognized special form" badForm
+eval (List [Atom "if", pred, conseq, alt]) = do
+  result <- eval pred
+  case result of
+    Bool False -> eval alt
+    otherwise  -> eval conseq
+
+eval (List (Atom fn : args)) = mapM eval args >>= apply fn
+eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: String -> [Expr] -> ThrowsError Expr
 apply fn args = maybe (throwError $ NotFunction "Unrecognized primitive function" fn)
