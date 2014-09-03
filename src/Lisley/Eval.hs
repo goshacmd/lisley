@@ -32,7 +32,19 @@ builtins = [("+", numNumFn (+)),
             ("<=", numBoolFn (<=)),
             (">=", numBoolFn (>=)),
             ("and", boolBoolFn (&&)),
-            ("or", boolBoolFn (&&))]
+            ("or", boolBoolFn (&&)),
+            ("head", fnHead),
+            ("tail", fnTail)]
+
+fnHead :: [Expr] -> ThrowsError Expr
+fnHead [List (x:xs)] = return x
+fnHead [badArg]      = throwError $ TypeMismatch "list" badArg
+fnHead badSingleArg  = throwError $ NumArgs 1 badSingleArg
+
+fnTail :: [Expr] -> ThrowsError Expr
+fnTail [List (x:xs)] = return $ List xs
+fnTail [badArg]      = throwError $ TypeMismatch "list" badArg
+fnTail badSingleArg  = throwError $ NumArgs 1 badSingleArg
 
 numNumFn = binFn unpackNumber Number
 numBoolFn = binFn unpackNumber Bool
