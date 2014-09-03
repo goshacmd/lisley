@@ -16,14 +16,33 @@ apply fn args = maybe (throwError $ NotFunction "Unrecognized primitive function
                       ($ args)
                 $ lookup fn builtins
 
-builtins = [("+", binNumberFn (+)),
-            ("-", binNumberFn (-)),
-            ("*", binNumberFn (*))]
+builtins = [("+", numNumFn (+)),
+            ("-", numNumFn (-)),
+            ("*", numNumFn (*)),
+            ("=", numBoolFn (==)),
+            ("not=", numBoolFn (/=)),
+            ("<", numBoolFn (<)),
+            (">", numBoolFn (>)),
+            ("<=", numBoolFn (<=)),
+            (">=", numBoolFn (>=)),
+            ("and", boolBoolFn (&&)),
+            ("or", boolBoolFn (&&))]
 
-binNumberFn :: (Int -> Int -> Int) -> [Expr] -> ThrowsError Expr
-binNumberFn _ []                   = throwError $ NumArgs 2 []
-binNumberFn _ v@[_]                = throwError $ NumArgs 2 v
-binNumberFn f [Number a, Number b] = return . Number $ f a b
-binNumberFn _ [Number a, b]        = throwError $ TypeMismatch "number" b
-binNumberFn _ [a, Number b]        = throwError $ TypeMismatch "number" a
-binNumberFn _ v                    = throwError $ NumArgs 2 v
+numNumFn = binFn unpackNumber Number
+numBoolFn = binFn unpackNumber Bool
+boolBoolFn = binFn unpackBool Bool
+
+binFn :: (Expr -> ThrowsError a) -> (b -> Expr) -> (a -> a -> b) -> [Expr] -> ThrowsError Expr
+binFn unpacker packer fn args = if length args /= 2
+                                then throwError $ NumArgs 2 args
+                                else do left  <- unpacker $ args !! 0
+                                        right <- unpacker $ args !! 1
+                                        return . packer $ fn left right
+
+unpackNumber :: Expr -> ThrowsError Int
+unpackNumber (Number n) = return n
+unpackNumber v          = throwError $ TypeMismatch "number" v
+
+unpackBool :: Expr -> ThrowsError Bool
+unpackBool (Bool b) = return b
+unpackBool v        = throwError $ TypeMismatch "bool" v
