@@ -42,25 +42,25 @@ builtins = map (\(n, f) -> (n, Function f))
    ("conj", conj),
    ("cons", cons)]
 
-first :: [Expr] -> Action Expr
+first :: Fn
 first [List (x:xs)]   = return x
 first [Vector (x:xs)] = return x
 first [badArg]        = throwError $ TypeMismatch "list" badArg
 first badSingleArg    = throwError $ ArityError 1 badSingleArg
 
-rest :: [Expr] -> Action Expr
+rest :: Fn
 rest [List (x:xs)]   = return $ List xs
 rest [Vector (x:xs)] = return $ List xs
 rest [badArg]        = throwError $ TypeMismatch "list" badArg
 rest badSingleArg    = throwError $ ArityError 1 badSingleArg
 
-conj :: [Expr] -> Action Expr
+conj :: Fn
 conj [List xs, v]   = return . List $ v:xs
 conj [Vector xs, v] = return . Vector $ xs ++ [v]
 conj [badArg, v]    = throwError $ TypeMismatch "list" badArg
 conj badSingleArg   = throwError $ ArityError 2 badSingleArg
 
-cons :: [Expr] -> Action Expr
+cons :: Fn
 cons [v, List xs]   = return $ List (v:xs)
 cons [v, Vector xs] = return $ List (v:xs)
 cons [badArg, v]    = throwError $ TypeMismatch "list" badArg

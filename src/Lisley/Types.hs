@@ -6,13 +6,15 @@ module Lisley.Types
 import Control.Monad.Error
 import Text.ParserCombinators.Parsec (ParseError)
 
+type Fn = [Expr] -> Action Expr
+
 data Expr = Atom String
           | List [Expr]
           | Vector [Expr]
           | Number Int
           | String String
           | Bool Bool
-          | Function ([Expr] -> Action Expr)
+          | Function Fn
 
 data LispError = ArityError Int [Expr]
                | TypeMismatch String Expr
