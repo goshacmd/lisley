@@ -31,17 +31,22 @@ apply env f                              args = throwError $ NotFunction "Not a 
 
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, PrimitiveFunction f))
-  [("+", numNumFn (+)),
-   ("-", numNumFn (-)),
-   ("*", numNumFn (*)),
-   ("=", numBoolFn (==)),
-   ("not=", numBoolFn (/=)),
-   ("<", numBoolFn (<)),
-   (">", numBoolFn (>)),
-   ("<=", numBoolFn (<=)),
-   (">=", numBoolFn (>=)),
-   ("and", boolBoolFn (&&)),
-   ("or", boolBoolFn (&&)),
+  [("+", numNumBinFn (+)),
+   ("-", numNumBinFn (-)),
+   ("*", numNumBinFn (*)),
+   ("=", numBoolBinFn (==)),
+   ("not=", numBoolBinFn (/=)),
+   ("<", numBoolBinFn (<)),
+   (">", numBoolBinFn (>)),
+   ("<=", numBoolBinFn (<=)),
+   (">=", numBoolBinFn (>=)),
+   ("and", boolBoolBinFn (&&)),
+   ("or", boolBoolBinFn (&&)),
+   ("not", boolBoolUnFn not),
+   ("list?", unFn (return . isList) Bool id),
+   ("vector?", unFn (return . isVector) Bool id),
+   ("even?", numBoolUnFn even),
+   ("odd?", numBoolUnFn odd),
    ("first", first),
    ("rest", rest),
    ("conj", conj),
@@ -71,9 +76,11 @@ cons [v, Vector xs] = return $ List (v:xs)
 cons [v, badArg]    = throwError $ TypeMismatch "list" badArg
 cons badSingleArg   = throwError $ ArityError 2 badSingleArg
 
-numNumFn = binFn unpackNumber Number
-numBoolFn = binFn unpackNumber Bool
-boolBoolFn = binFn unpackBool Bool
+numNumBinFn = binFn unpackNumber Number
+numBoolBinFn = binFn unpackNumber Bool
+numBoolUnFn = unFn unpackNumber Bool
+boolBoolBinFn = binFn unpackBool Bool
+boolBoolUnFn = unFn unpackBool Bool
 
 binFn :: (Expr -> Action a) -> (b -> Expr) -> (a -> a -> b) -> [Expr] -> Action Expr
 binFn unpacker packer fn args = if length args /= 2
@@ -81,6 +88,12 @@ binFn unpacker packer fn args = if length args /= 2
                                 else do left  <- unpacker $ args !! 0
                                         right <- unpacker $ args !! 1
                                         return . packer $ fn left right
+
+unFn :: (Expr -> Action a) -> (b -> Expr) -> (a -> b) -> [Expr] -> Action Expr
+unFn unpacker packer fn [arg] = do
+  a <- unpacker arg
+  return . packer $ fn a
+unFn unpacker packer fn xs    = throwError $ ArityError 1 xs
 
 forceArity :: Int -> [Expr] -> Action ()
 forceArity exp fnd | exp == (length fnd) = return ()
@@ -100,3 +113,11 @@ unpackBool v        = throwError $ TypeMismatch "bool" v
 atomName :: Expr -> Action String
 atomName (Atom a) = return a
 atomName v        = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
+
+isList :: Expr -> Bool
+isList (List _) = True
+isList _        = False
+
+isVector :: Expr -> Bool
+isVector (Vector _) = True
+isVector _          = False
