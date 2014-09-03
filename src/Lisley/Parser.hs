@@ -44,3 +44,8 @@ expr = string
            x <- try list
            char ')'
            return x
+
+readExpr :: String -> ThrowsError Expr
+readExpr input = case parse (spaces >> expr) "lisp" input of
+  Left err  -> throwError $ Parser err
+  Right val -> return val

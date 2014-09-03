@@ -3,20 +3,27 @@ module Lisley.Eval where
 import Lisley.Types
 import Data.Maybe (maybe)
 
-eval :: Expr -> Expr
-eval n@(Number _)             = n
-eval s@(String _)             = s
-eval b@(Bool _)               = b
-eval (List [Atom "quote", v]) = v
-eval (List (Atom fn : args))  = apply fn $ map eval args
+eval :: Expr -> ThrowsError Expr
+eval n@(Number _)             = return n
+eval s@(String _)             = return s
+eval b@(Bool _)               = return b
+eval (List [Atom "quote", v]) = return v
+eval (List (Atom fn : args))  = mapM eval args >>= apply fn
+eval badForm                  = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
-apply :: String -> [Expr] -> Expr
-apply fn args = maybe (Bool False) ($ args) $ lookup fn builtins
+apply :: String -> [Expr] -> ThrowsError Expr
+apply fn args = maybe (throwError $ NotFunction "Unrecognized primitive function" fn)
+                      ($ args)
+                $ lookup fn builtins
 
 builtins = [("+", binNumberFn (+)),
             ("-", binNumberFn (-)),
             ("*", binNumberFn (*))]
 
-binNumberFn :: (Int -> Int -> Int) -> [Expr] -> Expr
-binNumberFn f [Number a, Number b] = Number $ f a b
-binNumberFn _ _                    = Number 0
+binNumberFn :: (Int -> Int -> Int) -> [Expr] -> ThrowsError Expr
+binNumberFn _ []                   = throwError $ NumArgs 2 []
+binNumberFn _ v@[_]                = throwError $ NumArgs 2 v
+binNumberFn f [Number a, Number b] = return . Number $ f a b
+binNumberFn _ [Number a, b]        = throwError $ TypeMismatch "number" b
+binNumberFn _ [a, Number b]        = throwError $ TypeMismatch "number" a
+binNumberFn _ v                    = throwError $ NumArgs 2 v
