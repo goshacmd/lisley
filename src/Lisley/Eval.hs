@@ -33,24 +33,24 @@ builtins = [("+", numNumFn (+)),
             (">=", numBoolFn (>=)),
             ("and", boolBoolFn (&&)),
             ("or", boolBoolFn (&&)),
-            ("head", fnHead),
-            ("tail", fnTail),
-            ("conj", fnConj)]
+            ("first", first),
+            ("rest", rest),
+            ("conj", conj)]
 
-fnHead :: [Expr] -> ThrowsError Expr
-fnHead [List (x:xs)] = return x
-fnHead [badArg]      = throwError $ TypeMismatch "list" badArg
-fnHead badSingleArg  = throwError $ NumArgs 1 badSingleArg
+first :: [Expr] -> ThrowsError Expr
+first [List (x:xs)] = return x
+first [badArg]      = throwError $ TypeMismatch "list" badArg
+first badSingleArg  = throwError $ NumArgs 1 badSingleArg
 
-fnTail :: [Expr] -> ThrowsError Expr
-fnTail [List (x:xs)] = return $ List xs
-fnTail [badArg]      = throwError $ TypeMismatch "list" badArg
-fnTail badSingleArg  = throwError $ NumArgs 1 badSingleArg
+rest :: [Expr] -> ThrowsError Expr
+rest [List (x:xs)] = return $ List xs
+rest [badArg]      = throwError $ TypeMismatch "list" badArg
+rest badSingleArg  = throwError $ NumArgs 1 badSingleArg
 
-fnConj :: [Expr] -> ThrowsError Expr
-fnConj [List xs, v] = return $ List (v:xs)
-fnConj [badArg, v]  = throwError $ TypeMismatch "list" badArg
-fnConj badSingleArg = throwError $ NumArgs 2 badSingleArg
+conj :: [Expr] -> ThrowsError Expr
+conj [List xs, v] = return $ List (v:xs)
+conj [badArg, v]  = throwError $ TypeMismatch "list" badArg
+conj badSingleArg = throwError $ NumArgs 2 badSingleArg
 
 numNumFn = binFn unpackNumber Number
 numBoolFn = binFn unpackNumber Bool
