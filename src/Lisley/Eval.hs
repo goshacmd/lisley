@@ -8,19 +8,21 @@ eval env n@(Number _) = return n
 eval env s@(String _) = return s
 eval env b@(Bool _)   = return b
 eval env v@(Vector _) = return v
+eval env (List [Atom "fn", Vector params, body]) = do
+  bindings <- argsVector params
+  return . Function $ \args -> forceArity (length params) args >> eval ((zip bindings args) ++ env) body
 eval env (List [Atom "quote", v]) = return v
 eval env (List [Atom "if", pred, conseq, alt]) = do
   result <- eval env pred
   case result of
     Bool False -> eval env alt
     otherwise  -> eval env conseq
-eval env (List (Atom fn : args)) = mapM (eval env) args >>= apply fn env
+eval env (List (fn : args)) = do
+  f <- eval env fn
+  params <- mapM (eval env) args
+  (runFunction f) params
+eval env (Atom a) = maybe (throwError $ UnboundSymbol a) return $ lookup a env
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
-
-apply :: String -> Env -> [Expr] -> Action Expr
-apply fn env args = maybe (throwError $ UnboundSymbol fn)
-                          (($ args) . runFunction)
-                    $ lookup fn env
 
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, Function f))
@@ -75,6 +77,13 @@ binFn unpacker packer fn args = if length args /= 2
                                         right <- unpacker $ args !! 1
                                         return . packer $ fn left right
 
+forceArity :: Int -> [Expr] -> Action ()
+forceArity exp fnd | exp == (length fnd) = return ()
+forceArity exp fnd = throwError $ ArityError exp fnd
+
+argsVector :: [Expr] -> Action [String]
+argsVector params = mapM atomName params
+
 unpackNumber :: Expr -> Action Int
 unpackNumber (Number n) = return n
 unpackNumber v          = throwError $ TypeMismatch "number" v
@@ -82,6 +91,10 @@ unpackNumber v          = throwError $ TypeMismatch "number" v
 unpackBool :: Expr -> Action Bool
 unpackBool (Bool b) = return b
 unpackBool v        = throwError $ TypeMismatch "bool" v
+
+atomName :: Expr -> Action String
+atomName (Atom a) = return a
+atomName v        = throwError $ TypeMismatch "atom" v
 
 runFunction :: Expr -> [Expr] -> Action Expr
 runFunction (Function f) = f

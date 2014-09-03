@@ -14,7 +14,7 @@ data Expr = Atom String
           | Bool Bool
           | Function ([Expr] -> Action Expr)
 
-data LispError = ArityError Integer [Expr]
+data LispError = ArityError Int [Expr]
                | TypeMismatch String Expr
                | NotFunction String String
                | BadSpecialForm String Expr
