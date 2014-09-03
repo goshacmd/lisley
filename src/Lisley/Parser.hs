@@ -29,6 +29,9 @@ number = liftM (Number . read) $ many1 digit
 list :: Parser Expr
 list = liftM List $ sepBy expr spaces
 
+vector :: Parser Expr
+vector = liftM Vector $ sepBy expr spaces
+
 quoted :: Parser Expr
 quoted = do
   char '\''
@@ -43,6 +46,10 @@ expr = string
     <|> do char '('
            x <- try list
            char ')'
+           return x
+    <|> do char '['
+           x <- try vector
+           char ']'
            return x
 
 readExpr :: String -> Action Expr

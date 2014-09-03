@@ -7,6 +7,7 @@ eval :: Expr -> Action Expr
 eval n@(Number _) = return n
 eval s@(String _) = return s
 eval b@(Bool _)   = return b
+eval v@(Vector _) = return v
 eval (List [Atom "quote", v]) = return v
 eval (List [Atom "if", pred, conseq, alt]) = do
   result <- eval pred
@@ -39,24 +40,28 @@ builtins = [("+", numNumFn (+)),
             ("cons", cons)]
 
 first :: [Expr] -> Action Expr
-first [List (x:xs)] = return x
-first [badArg]      = throwError $ TypeMismatch "list" badArg
-first badSingleArg  = throwError $ NumArgs 1 badSingleArg
+first [List (x:xs)]   = return x
+first [Vector (x:xs)] = return x
+first [badArg]        = throwError $ TypeMismatch "list" badArg
+first badSingleArg    = throwError $ NumArgs 1 badSingleArg
 
 rest :: [Expr] -> Action Expr
-rest [List (x:xs)] = return $ List xs
-rest [badArg]      = throwError $ TypeMismatch "list" badArg
-rest badSingleArg  = throwError $ NumArgs 1 badSingleArg
+rest [List (x:xs)]   = return $ List xs
+rest [Vector (x:xs)] = return $ List xs
+rest [badArg]        = throwError $ TypeMismatch "list" badArg
+rest badSingleArg    = throwError $ NumArgs 1 badSingleArg
 
 conj :: [Expr] -> Action Expr
-conj [List xs, v] = return $ List (v:xs)
-conj [badArg, v]  = throwError $ TypeMismatch "list" badArg
-conj badSingleArg = throwError $ NumArgs 2 badSingleArg
+conj [List xs, v]   = return . List $ v:xs
+conj [Vector xs, v] = return . Vector $ xs ++ [v]
+conj [badArg, v]    = throwError $ TypeMismatch "list" badArg
+conj badSingleArg   = throwError $ NumArgs 2 badSingleArg
 
 cons :: [Expr] -> Action Expr
-cons [v, List xs] = return $ List (v:xs)
-cons [badArg, v]  = throwError $ TypeMismatch "list" badArg
-cons badSingleArg = throwError $ NumArgs 2 badSingleArg
+cons [v, List xs]   = return $ List (v:xs)
+cons [v, Vector xs] = return $ List (v:xs)
+cons [badArg, v]    = throwError $ TypeMismatch "list" badArg
+cons badSingleArg   = throwError $ NumArgs 2 badSingleArg
 
 numNumFn = binFn unpackNumber Number
 numBoolFn = binFn unpackNumber Bool
