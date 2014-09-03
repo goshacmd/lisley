@@ -14,7 +14,8 @@ apply :: String -> [Expr] -> Expr
 apply fn args = maybe (Bool False) ($ args) $ lookup fn builtins
 
 builtins = [("+", binNumberFn (+)),
-            ("-", binNumberFn (-))]
+            ("-", binNumberFn (-)),
+            ("*", binNumberFn (*))]
 
 binNumberFn :: (Int -> Int -> Int) -> [Expr] -> Expr
 binNumberFn f [Number a, Number b] = Number $ f a b
