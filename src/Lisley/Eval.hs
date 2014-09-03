@@ -1,21 +1,7 @@
 module Lisley.Eval where
 
+import Lisley.Types
 import Data.Maybe (maybe)
-
-data Expr = Atom String
-          | List [Expr]
-          | Number Int
-          | String String
-          | Bool Bool
-
-showExpr :: Expr -> String
-showExpr (Atom a)   = a
-showExpr (Number n) = show n
-showExpr (String s) = show s
-showExpr (Bool b)   = show b
-showExpr (List xs)  = show xs
-
-instance Show Expr where show = showExpr
 
 eval :: Expr -> Expr
 eval n@(Number _)             = n
