@@ -33,7 +33,7 @@ quoted :: Parser Expr
 quoted = do
   char '\''
   x <- expr
-  return $ List [Atom "quoted", x]
+  return $ List [Atom "quote", x]
 
 expr :: Parser Expr
 expr = string
