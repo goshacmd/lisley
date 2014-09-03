@@ -24,7 +24,7 @@ showExpr :: Expr -> String
 showExpr (Atom a)   = a
 showExpr (Number n) = show n
 showExpr (String s) = show s
-showExpr (Bool b)   = show b
+showExpr (Bool b)   = if b then "true" else "false"
 showExpr (List xs)  = unwordsList xs
 
 instance Show Expr where show = showExpr
