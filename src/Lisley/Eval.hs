@@ -27,11 +27,14 @@ eval env (Symbol a) = maybe (throwError $ UnboundSymbol a) return $ lookup a env
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: Env -> Expr -> [Expr] -> Action Expr
-apply env (PrimitiveFunction f) args = f args
+apply env (PrimitiveFunction f) args = f env args
 apply env f@(Function params vararg body closure) args =
   forceArity (arity f) args >> eval (a ++ env) body
   where a = fnArgs params vararg args
 apply env f args = throwError $ NotFunction "Not a function" "<fn>"
+
+fnApply :: Fn
+fnApply env (f:args) = apply env f args
 
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, PrimitiveFunction f))
@@ -51,44 +54,45 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction f))
    ("vector?", unFn (return . isVector) Bool id),
    ("even?", numBoolUnFn even),
    ("odd?", numBoolUnFn odd),
-   ("first", first),
-   ("rest", rest),
-   ("conj", conj),
-   ("cons", cons),
-   ("keyword", keyword),
-   ("name", name)]
+   ("first", const first),
+   ("rest", const rest),
+   ("conj", const conj),
+   ("cons", const cons),
+   ("keyword", const keyword),
+   ("name", const name),
+   ("apply", fnApply)]
 
-first :: Fn
+first :: SimpleFn
 first [List (x:xs)]   = return x
 first [Vector (x:xs)] = return x
 first [badArg]        = throwError $ TypeMismatch "list or vector" badArg
 first badArgs         = throwError $ ArityError 1 False badArgs
 
-rest :: Fn
+rest :: SimpleFn
 rest [List (x:xs)]   = return $ List xs
 rest [Vector (x:xs)] = return $ List xs
 rest [badArg]        = throwError $ TypeMismatch "list or vector" badArg
 rest badArgs         = throwError $ ArityError 1 False badArgs
 
-conj :: Fn
+conj :: SimpleFn
 conj [List xs, v]   = return . List $ v:xs
 conj [Vector xs, v] = return . Vector $ xs ++ [v]
 conj [badArg, v]    = throwError $ TypeMismatch "list or vector" badArg
 conj badArgs        = throwError $ ArityError 2 False badArgs
 
-cons :: Fn
+cons :: SimpleFn
 cons [v, List xs]   = return $ List (v:xs)
 cons [v, Vector xs] = return $ List (v:xs)
 cons [v, badArg]    = throwError $ TypeMismatch "list or vector" badArg
 cons badArgs        = throwError $ ArityError 2 False badArgs
 
-keyword :: Fn
+keyword :: SimpleFn
 keyword [Symbol x] = return $ Keyword x
 keyword [String x] = return $ Keyword x
 keyword [badArg]   = throwError $ TypeMismatch "symbol or string" badArg
 keyword badArgs    = throwError $ ArityError 1 False badArgs
 
-name :: Fn
+name :: SimpleFn
 name [String x]  = return $ String x
 name [Symbol x]  = return $ String x
 name [Keyword x] = return $ String x
@@ -101,18 +105,18 @@ numBoolUnFn = unFn unpackNumber Bool
 boolBoolBinFn = binFn unpackBool Bool
 boolBoolUnFn = unFn unpackBool Bool
 
-binFn :: (Expr -> Action a) -> (b -> Expr) -> (a -> a -> b) -> [Expr] -> Action Expr
-binFn unpacker packer fn args = if length args /= 2
-                                then throwError $ ArityError 2 False args
-                                else do left  <- unpacker $ args !! 0
-                                        right <- unpacker $ args !! 1
-                                        return . packer $ fn left right
+binFn :: (Expr -> Action a) -> (b -> Expr) -> (a -> a -> b) -> Env -> [Expr] -> Action Expr
+binFn unpacker packer fn env args = if length args /= 2
+                                    then throwError $ ArityError 2 False args
+                                    else do left  <- unpacker $ args !! 0
+                                            right <- unpacker $ args !! 1
+                                            return . packer $ fn left right
 
-unFn :: (Expr -> Action a) -> (b -> Expr) -> (a -> b) -> [Expr] -> Action Expr
-unFn unpacker packer fn [arg] = do
+unFn :: (Expr -> Action a) -> (b -> Expr) -> (a -> b) -> Env -> [Expr] -> Action Expr
+unFn unpacker packer fn env [arg] = do
   a <- unpacker arg
   return . packer $ fn a
-unFn unpacker packer fn xs    = throwError $ ArityError 1 False xs
+unFn unpacker packer fn env args  = throwError $ ArityError 1 False args
 
 arity :: Expr -> (Int, Bool)
 arity (Function params vararg body closure) = (length params, isJust vararg)
@@ -156,6 +160,11 @@ argsAndVararg = oneVararg . break (== "&")
 
 allUnique :: Eq a => [a] -> Bool
 allUnique xs = length xs == length (nub xs)
+
+isFunction :: Expr -> Bool
+isFunction (PrimitiveFunction f) = True
+isFunction (Function p v b c)    = True
+isFunction notFunction           = False
 
 _bindings :: [String] -> Expr
 _bindings = Vector . map Symbol

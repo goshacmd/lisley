@@ -7,7 +7,8 @@ import Data.Maybe (isJust, fromJust)
 import Control.Monad.Error
 import Text.ParserCombinators.Parsec (ParseError)
 
-type Fn = [Expr] -> Action Expr
+type SimpleFn = [Expr] -> Action Expr
+type Fn = Env -> SimpleFn
 
 data Expr = Symbol String
           | List [Expr]
