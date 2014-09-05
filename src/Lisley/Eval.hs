@@ -28,13 +28,11 @@ eval env (Symbol a) = maybe (throwError $ UnboundSymbol a) return $ lookup a env
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: Env -> Expr -> [Expr] -> Action Expr
-apply env (PrimitiveFunction f) args = f env args
+apply env (PrimitiveFunction name f) args = f env args
 apply env f@(Function params vararg body closure) args =
   forceArity (arity f) args >> eval (a ++ env) body
   where a = fnArgs params vararg args
-apply env f args = throwError $ NotFunction "Not a function" "<fn>"
-
-
+apply env f args = throwError $ NotFunction "Not a function" (show f)
 
 arity :: Expr -> (Int, Bool)
 arity (Function params vararg body closure) = (length params, isJust vararg)
@@ -72,9 +70,9 @@ allUnique :: Eq a => [a] -> Bool
 allUnique xs = length xs == length (nub xs)
 
 isFunction :: Expr -> Bool
-isFunction (PrimitiveFunction f) = True
-isFunction (Function p v b c)    = True
-isFunction notFunction           = False
+isFunction (PrimitiveFunction n f) = True
+isFunction (Function p v b c)      = True
+isFunction notFunction             = False
 
 _bindings :: [String] -> Expr
 _bindings = Vector . map Symbol

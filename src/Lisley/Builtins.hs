@@ -11,7 +11,7 @@ fnEval env [expr]  = eval env expr
 fnEval env badArgs = throwError $ ArityError 1 False badArgs
 
 builtins :: [(String, Expr)]
-builtins = map (\(n, f) -> (n, PrimitiveFunction f))
+builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   [ ("+",       numNumBinFn (+))
   , ("-",       numNumBinFn (-))
   , ("*",       numNumBinFn (*))

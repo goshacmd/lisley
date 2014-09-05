@@ -17,7 +17,7 @@ data Expr = Symbol String
           | Keyword String
           | String String
           | Bool Bool
-          | PrimitiveFunction Fn
+          | PrimitiveFunction String Fn
           | Function { params :: [String], vararg :: Maybe String, body :: Expr, closure :: Env }
 
 data LispError = ArityError Int Bool [Expr]
@@ -32,14 +32,15 @@ type Action = Either LispError
 type Env = [(String, Expr)]
 
 showExpr :: Expr -> String
-showExpr (Symbol a)            = a
-showExpr (Number n)            = show n
-showExpr (Keyword k)           = ":" ++ k
-showExpr (String s)            = show s
-showExpr (Bool b)              = if b then "true" else "false"
-showExpr (List xs)             = "(" ++ unwordsCol xs ++ ")"
-showExpr (Vector xs)           = "[" ++ unwordsCol xs ++ "]"
-showExpr (PrimitiveFunction _) = "<primitive fn>"
+showExpr (Symbol a)  = a
+showExpr (Number n)  = show n
+showExpr (Keyword k) = ":" ++ k
+showExpr (String s)  = show s
+showExpr (Bool b)    = if b then "true" else "false"
+showExpr (List xs)   = "(" ++ unwordsCol xs ++ ")"
+showExpr (Vector xs) = "[" ++ unwordsCol xs ++ "]"
+showExpr (PrimitiveFunction name f) =
+  "#<primitive-fn:" ++ name ++ ">"
 showExpr (Function params vararg body _) =
   "(fn [" ++ unwords params ++ (if isJust vararg then " & " ++ fromJust vararg else "") ++ "] ...)"
 
