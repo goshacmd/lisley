@@ -127,9 +127,8 @@ symbolName (Symbol a) = return a
 symbolName v          = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
 
 allSymbolsUnique :: [String] -> Action [String]
-allSymbolsUnique syms = if allUnique syms
-                        then return syms
-                        else throwError $ BadSpecialForm "All function argument bindings should be unique, got" (Vector $ map Symbol syms)
+allSymbolsUnique syms = check allUnique syms $ BadSpecialForm "All function argument bindings should be unique, got"
+                                                              (_bindings syms)
 
 argsAndVararg :: [String] -> Action ([String], Maybe String)
 argsAndVararg = oneVararg . break (== "&")
@@ -137,7 +136,13 @@ argsAndVararg = oneVararg . break (== "&")
         oneVararg (xs, ["&", var]) = return (xs, Just var)
         oneVararg (xs, badVar)     =
           throwError $ BadSpecialForm "Invalid variadic binding, expected '&' followed by one symbol, got"
-                                      (Vector $ map Symbol xs ++ map Symbol badVar)
+                                      (_bindings $ xs ++ badVar)
 
 allUnique :: Eq a => [a] -> Bool
 allUnique xs = length xs == length (nub xs)
+
+_bindings :: [String] -> Expr
+_bindings = Vector . map Symbol
+
+check :: MonadError e m => (a -> Bool) -> a -> e -> m a
+check f x e = if f x then return x else throwError e
