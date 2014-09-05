@@ -60,7 +60,8 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction f))
    ("cons", const cons),
    ("keyword", const keyword),
    ("name", const name),
-   ("apply", fnApply)]
+   ("apply", fnApply),
+   ("map", fnMap)]
 
 first :: SimpleFn
 first [List (x:xs)]   = return x
@@ -98,6 +99,12 @@ name [Symbol x]  = return $ String x
 name [Keyword x] = return $ String x
 name [badArg]    = throwError $ TypeMismatch "string, symbol, or keyword" badArg
 name badArgs     = throwError $ ArityError 1 False badArgs
+
+fnMap :: Fn
+fnMap env [f, List xs]   = mapM (apply env f . return) xs >>= return . List
+fnMap env [f, Vector xs] = mapM (apply env f . return) xs >>= return . List
+fnMap env [f, badArg]    = throwError $ TypeMismatch "list or vector" badArg
+fnMap env badArgs        = throwError $ ArityError 2 False badArgs
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
