@@ -10,10 +10,11 @@ eval env k@(Keyword _) = return k
 eval env s@(String _)  = return s
 eval env b@(Bool _)    = return b
 eval env v@(Vector _)  = return v
-eval env (List [Symbol "fn", Vector params, body]) = do
-  (bindings, variadic) <- argsVector params
-  return $ Function bindings variadic body env
 eval env (List [Symbol "quote", v]) = return v
+eval env (List (Symbol "do" : exprs)) = mapM (eval env) exprs >>= return . last
+eval env (List (Symbol "fn" : Vector params : body)) = do
+  (bindings, variadic) <- argsVector params
+  return $ Function bindings variadic (List $ [Symbol "do"] ++ body) env
 eval env (List [Symbol "if", pred, conseq, alt]) = do
   result <- eval env pred
   case result of
