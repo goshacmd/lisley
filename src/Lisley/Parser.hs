@@ -47,9 +47,18 @@ quoted = do
   x <- expr
   return $ List [Symbol "quote", x]
 
+anonymousFn :: Parser Expr
+anonymousFn = do
+  char '#'
+  char '('
+  body <- try list
+  char ')'
+  return $ List [Symbol "fn", Vector [Symbol "%"], body]
+
 expr :: Parser Expr
 expr = string
     <|> keyword
+    <|> anonymousFn
     <|> atom
     <|> number
     <|> quoted
