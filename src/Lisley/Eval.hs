@@ -37,6 +37,10 @@ apply env f args = throwError $ NotFunction "Not a function" "<fn>"
 fnApply :: Fn
 fnApply env (f:args) = apply env f args
 
+fnEval :: Fn
+fnEval env [expr]  = eval env expr
+fnEval env badArgs = throwError $ ArityError 1 False badArgs
+
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, PrimitiveFunction f))
   [("+", numNumBinFn (+)),
@@ -62,7 +66,8 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction f))
    ("keyword", const keyword),
    ("name", const name),
    ("apply", fnApply),
-   ("map", fnMap)]
+   ("map", fnMap),
+   ("eval", fnEval)]
 
 first :: SimpleFn
 first [List (x:xs)]   = return x
