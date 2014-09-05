@@ -66,3 +66,8 @@ isList _        = False
 isVector :: Expr -> Bool
 isVector (Vector _) = True
 isVector _          = False
+
+trapError action = catchError action (return . show)
+
+extractValue :: Action a -> a
+extractValue (Right val) = val

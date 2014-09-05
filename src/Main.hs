@@ -8,11 +8,6 @@ import Control.Monad
 import System.IO
 import System.Environment
 
-trapError action = catchError action (return . show)
-
-extractValue :: Action a -> a
-extractValue (Right val) = val
-
 run :: String -> String
 run input = case readExpr input >>= eval builtins of
   Left err  -> "Got an error: " ++ show err
