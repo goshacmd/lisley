@@ -18,7 +18,7 @@ data Expr = Symbol String
           | String String
           | Bool Bool
           | PrimitiveFunction String Fn
-          | Function { params :: [String], vararg :: Maybe String, body :: Expr, closure :: Env }
+          | Function { fName :: String, params :: [String], vararg :: Maybe String, body :: Expr, closure :: Env }
 
 data LispError = ArityError Int Bool [Expr]
                | TypeMismatch String Expr
@@ -41,8 +41,8 @@ showExpr (List xs)   = "(" ++ unwordsCol xs ++ ")"
 showExpr (Vector xs) = "[" ++ unwordsCol xs ++ "]"
 showExpr (PrimitiveFunction name f) =
   "#<primitive-fn:" ++ name ++ ">"
-showExpr (Function params vararg body _) =
-  "(fn [" ++ unwords params ++ (if isJust vararg then " & " ++ fromJust vararg else "") ++ "] ...)"
+showExpr (Function name params vararg body _) =
+  "(fn " ++ (if name == "noname" then "" else name ++ " ") ++ "[" ++ unwords params ++ (if isJust vararg then " & " ++ fromJust vararg else "") ++ "] ...)"
 
 showError :: LispError -> String
 showError (ArityError exp var fnd) =

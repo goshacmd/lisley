@@ -12,9 +12,12 @@ eval env b@(Bool _)    = return b
 eval env v@(Vector _)  = return v
 eval env (List [Symbol "quote", v]) = return v
 eval env (List (Symbol "do" : exprs)) = mapM (eval env) exprs >>= return . last
+eval env (List (Symbol "fn" : Symbol name : Vector params : body)) = do
+  (bindings, variadic) <- argsVector params
+  return $ Function name bindings variadic (List $ [Symbol "do"] ++ body) env
 eval env (List (Symbol "fn" : Vector params : body)) = do
   (bindings, variadic) <- argsVector params
-  return $ Function bindings variadic (List $ [Symbol "do"] ++ body) env
+  return $ Function "noname" bindings variadic (List $ [Symbol "do"] ++ body) env
 eval env (List [Symbol "if", pred, conseq, alt]) = do
   result <- eval env pred
   case result of
@@ -29,13 +32,13 @@ eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badFo
 
 apply :: Env -> Expr -> [Expr] -> Action Expr
 apply env (PrimitiveFunction name f) args = f env args
-apply env f@(Function params vararg body closure) args =
+apply env f@(Function name params vararg body closure) args =
   forceArity (arity f) args >> eval (a ++ env) body
   where a = fnArgs params vararg args
 apply env f args = throwError $ NotFunction "Not a function" (show f)
 
 arity :: Expr -> (Int, Bool)
-arity (Function params vararg body closure) = (length params, isJust vararg)
+arity (Function name params vararg body closure) = (length params, isJust vararg)
 
 forceArity :: (Int, Bool) -> [Expr] -> Action ()
 forceArity (exp, False) fnd | exp == (length fnd) = return ()
@@ -71,7 +74,7 @@ allUnique xs = length xs == length (nub xs)
 
 isFunction :: Expr -> Bool
 isFunction (PrimitiveFunction n f) = True
-isFunction (Function p v b c)      = True
+isFunction (Function n p v b c)    = True
 isFunction notFunction             = False
 
 _bindings :: [String] -> Expr
