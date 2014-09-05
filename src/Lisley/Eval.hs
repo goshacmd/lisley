@@ -43,31 +43,32 @@ fnEval env badArgs = throwError $ ArityError 1 False badArgs
 
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, PrimitiveFunction f))
-  [("+", numNumBinFn (+)),
-   ("-", numNumBinFn (-)),
-   ("*", numNumBinFn (*)),
-   ("=", numBoolBinFn (==)),
-   ("not=", numBoolBinFn (/=)),
-   ("<", numBoolBinFn (<)),
-   (">", numBoolBinFn (>)),
-   ("<=", numBoolBinFn (<=)),
-   (">=", numBoolBinFn (>=)),
-   ("and", boolBoolBinFn (&&)),
-   ("or", boolBoolBinFn (&&)),
-   ("not", boolBoolUnFn not),
-   ("list?", unFn (return . isList) Bool id),
-   ("vector?", unFn (return . isVector) Bool id),
-   ("even?", numBoolUnFn even),
-   ("odd?", numBoolUnFn odd),
-   ("first", const first),
-   ("rest", const rest),
-   ("conj", const conj),
-   ("cons", const cons),
-   ("keyword", const keyword),
-   ("name", const name),
-   ("apply", fnApply),
-   ("map", fnMap),
-   ("eval", fnEval)]
+  [ ("+",       numNumBinFn (+))
+  , ("-",       numNumBinFn (-))
+  , ("*",       numNumBinFn (*))
+  , ("=",       numBoolBinFn (==))
+  , ("not=",    numBoolBinFn (/=))
+  , ("<",       numBoolBinFn (<))
+  , (">",       numBoolBinFn (>))
+  , ("<=",      numBoolBinFn (<=))
+  , (">=",      numBoolBinFn (>=))
+  , ("and",     boolBoolBinFn (&&))
+  , ("or",      boolBoolBinFn (&&))
+  , ("not",     boolBoolUnFn not)
+  , ("list?",   unFn (return . isList) Bool id)
+  , ("vector?", unFn (return . isVector) Bool id)
+  , ("even?",   numBoolUnFn even)
+  , ("odd?",    numBoolUnFn odd)
+  , ("first",   const first)
+  , ("rest",    const rest)
+  , ("conj",    const conj)
+  , ("cons",    const cons)
+  , ("keyword", const keyword)
+  , ("name",    const name)
+  , ("apply",   fnApply)
+  , ("map",     fnMap)
+  , ("eval",    fnEval)
+  ]
 
 first :: SimpleFn
 first [List (x:xs)]   = return x
