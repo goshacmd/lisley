@@ -21,6 +21,7 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction f))
   , (">",       numBoolBinFn (>))
   , ("<=",      numBoolBinFn (<=))
   , (">=",      numBoolBinFn (>=))
+  , ("string=", strBoolBinFn (==))
   , ("and",     boolBoolBinFn (&&))
   , ("or",      boolBoolBinFn (&&))
   , ("not",     boolBoolUnFn not)
@@ -91,6 +92,7 @@ fnFold env badArgs           = throwError $ ArityError 3 False badArgs
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
+strBoolBinFn = binFn unpackString Bool
 numBoolUnFn = unFn unpackNumber Bool
 boolBoolBinFn = binFn unpackBool Bool
 boolBoolUnFn = unFn unpackBool Bool
@@ -107,3 +109,15 @@ unFn unpacker packer fn env [arg] = do
   a <- unpacker arg
   return . packer $ fn a
 unFn unpacker packer fn env args  = throwError $ ArityError 1 False args
+
+unpackNumber :: Expr -> Action Int
+unpackNumber (Number n) = return n
+unpackNumber v          = throwError $ TypeMismatch "number" v
+
+unpackString :: Expr -> Action String
+unpackString (String s) = return s
+unpackString v          = throwError $ TypeMismatch "string" v
+
+unpackBool :: Expr -> Action Bool
+unpackBool (Bool b) = return b
+unpackBool v        = throwError $ TypeMismatch "bool" v

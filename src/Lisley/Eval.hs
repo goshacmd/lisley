@@ -52,14 +52,6 @@ fnArgs params vararg = (\(p, v) -> zip params p ++ vMap vararg v) . splitAt (len
 argsVector :: [Expr] -> Action ([String], Maybe String)
 argsVector params = mapM symbolName params >>= allSymbolsUnique >>= argsAndVararg
 
-unpackNumber :: Expr -> Action Int
-unpackNumber (Number n) = return n
-unpackNumber v          = throwError $ TypeMismatch "number" v
-
-unpackBool :: Expr -> Action Bool
-unpackBool (Bool b) = return b
-unpackBool v        = throwError $ TypeMismatch "bool" v
-
 symbolName :: Expr -> Action String
 symbolName (Symbol a) = return a
 symbolName v          = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
