@@ -15,7 +15,7 @@ $ lisley
 * multi-arity functions
 * multi-argument anonymous function literal
 * proper vectors; sets, hash maps
-* `filter`, `fold`, etc
+* `filter`, etc...
 * multi-arity `+`, `-`, etc...
 * primitive IO functions
 * macros
