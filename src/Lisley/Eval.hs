@@ -12,6 +12,8 @@ eval env b@(Bool _)    = return b
 eval env v@(Vector _)  = return v
 eval env (List [Symbol "quote", v]) = return v
 eval env (List (Symbol "do" : exprs)) = mapM (eval env) exprs >>= return . last
+eval env (List (Symbol "let" : Vector [b1, v1] : body)) =
+  eval env $ List [List $ [Symbol "fn", Vector [b1]] ++ body, v1]
 eval env (List (Symbol "fn" : Symbol name : Vector params : body)) = do
   (bindings, variadic) <- argsVector params
   return $ Function name bindings variadic (List $ [Symbol "do"] ++ body) env
