@@ -68,6 +68,7 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction f))
   , ("apply",   fnApply)
   , ("map",     fnMap)
   , ("eval",    fnEval)
+  , ("fold",    fnFold)
   ]
 
 first :: SimpleFn
@@ -112,6 +113,12 @@ fnMap env [f, List xs]   = mapM (apply env f . return) xs >>= return . List
 fnMap env [f, Vector xs] = mapM (apply env f . return) xs >>= return . List
 fnMap env [f, badArg]    = throwError $ TypeMismatch "list or vector" badArg
 fnMap env badArgs        = throwError $ ArityError 2 False badArgs
+
+fnFold :: Fn
+fnFold env [f, v, List xs]   = foldM (\acc curr -> apply env f [acc, curr]) v xs
+fnFold env [f, v, Vector xs] = foldM (\acc curr -> apply env f [acc, curr]) v xs
+fnFold env [f, v, badArg]    = throwError $ TypeMismatch "list or vector" badArg
+fnFold env badArgs           = throwError $ ArityError 3 False badArgs
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
