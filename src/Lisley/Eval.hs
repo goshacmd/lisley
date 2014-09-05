@@ -26,16 +26,10 @@ eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badFo
 
 apply :: Env -> Expr -> [Expr] -> Action Expr
 apply env (PrimitiveFunction f) args = f args
-apply env (Function params vararg body closure) args =
-  forceArity (length params) (isJust vararg) args >> eval (a ++ env) body
+apply env f@(Function params vararg body closure) args =
+  forceArity (arity f) args >> eval (a ++ env) body
   where a = fnArgs params vararg args
-apply env f                     args = throwError $ NotFunction "Not a function" "<fn>"
-
-fnArgs :: [String] -> Maybe String -> [Expr] -> [(String, Expr)]
-fnArgs params vararg args = zip params pArgs ++ vMap vararg
-  where (pArgs, vArg) = splitAt (length params) args
-        vMap (Just v) = [(v, List vArg)]
-        vMap Nothing  = []
+apply env f args = throwError $ NotFunction "Not a function" "<fn>"
 
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, PrimitiveFunction f))
@@ -103,10 +97,18 @@ unFn unpacker packer fn [arg] = do
   return . packer $ fn a
 unFn unpacker packer fn xs    = throwError $ ArityError 1 False xs
 
-forceArity :: Int -> Bool -> [Expr] -> Action ()
-forceArity exp False fnd | exp == (length fnd) = return ()
-forceArity exp True fnd  | exp <= (length fnd) = return ()
-forceArity exp var fnd = throwError $ ArityError exp var fnd
+arity :: Expr -> (Int, Bool)
+arity (Function params vararg body closure) = (length params, isJust vararg)
+
+forceArity :: (Int, Bool) -> [Expr] -> Action ()
+forceArity (exp, False) fnd | exp == (length fnd) = return ()
+forceArity (exp, True)  fnd | exp <= (length fnd) = return ()
+forceArity (exp, var)   fnd = throwError $ ArityError exp var fnd
+
+fnArgs :: [String] -> Maybe String -> [Expr] -> [(String, Expr)]
+fnArgs params vararg = (\(p, v) -> zip params p ++ vMap vararg v) . splitAt (length params)
+  where vMap (Just v) xs = [(v, List xs)]
+        vMap Nothing  xs = []
 
 argsVector :: [Expr] -> Action ([String], Maybe String)
 argsVector params = mapM symbolName params >>= argsAndVararg
@@ -124,15 +126,9 @@ symbolName (Symbol a) = return a
 symbolName v          = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
 
 argsAndVararg :: [String] -> Action ([String], Maybe String)
-argsAndVararg = ensureOneVararg . break (== "&")
-  where ensureOneVararg (xs, []) = return (xs, Nothing)
-        ensureOneVararg (xs, ["&", var]) = return (xs, Just var)
-        ensureOneVararg (xs, badVar) = throwError $ BadSpecialForm "Invalid variadic binding, expected '&' followed by one symbol, got" (Vector $ map Symbol xs ++ map Symbol badVar)
-
-isList :: Expr -> Bool
-isList (List _) = True
-isList _        = False
-
-isVector :: Expr -> Bool
-isVector (Vector _) = True
-isVector _          = False
+argsAndVararg = oneVararg . break (== "&")
+  where oneVararg (xs, [])         = return (xs, Nothing)
+        oneVararg (xs, ["&", var]) = return (xs, Just var)
+        oneVararg (xs, badVar)     =
+          throwError $ BadSpecialForm "Invalid variadic binding, expected '&' followed by one symbol, got"
+                                      (Vector $ map Symbol xs ++ map Symbol badVar)

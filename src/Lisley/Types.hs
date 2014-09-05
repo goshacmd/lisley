@@ -55,3 +55,11 @@ instance Error LispError
 
 unwordsCol :: [Expr] -> String
 unwordsCol = unwords . map showExpr
+
+isList :: Expr -> Bool
+isList (List _) = True
+isList _        = False
+
+isVector :: Expr -> Bool
+isVector (Vector _) = True
+isVector _          = False
