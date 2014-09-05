@@ -1,7 +1,7 @@
 module Lisley.Eval where
 
 import Lisley.Types
-import Data.Maybe (maybe)
+import Data.Maybe (maybe, isJust)
 
 eval :: Env -> Expr -> Action Expr
 eval env n@(Number _) = return n
@@ -9,8 +9,8 @@ eval env s@(String _) = return s
 eval env b@(Bool _)   = return b
 eval env v@(Vector _) = return v
 eval env (List [Symbol "fn", Vector params, body]) = do
-  bindings <- argsVector params
-  return $ Function bindings body env
+  (bindings, variadic) <- argsVector params
+  return $ Function bindings variadic body env
 eval env (List [Symbol "quote", v]) = return v
 eval env (List [Symbol "if", pred, conseq, alt]) = do
   result <- eval env pred
@@ -25,9 +25,17 @@ eval env (Symbol a) = maybe (throwError $ UnboundSymbol a) return $ lookup a env
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: Env -> Expr -> [Expr] -> Action Expr
-apply env (PrimitiveFunction f)          args = f args
-apply env (Function params body closure) args = forceArity (length params) args >> eval ((zip params args) ++ env) body
-apply env f                              args = throwError $ NotFunction "Not a function" "<fn>"
+apply env (PrimitiveFunction f) args = f args
+apply env (Function params vararg body closure) args =
+  forceArity (length params) (isJust vararg) args >> eval (a ++ env) body
+  where a = fnArgs params vararg args
+apply env f                     args = throwError $ NotFunction "Not a function" "<fn>"
+
+fnArgs :: [String] -> Maybe String -> [Expr] -> [(String, Expr)]
+fnArgs params vararg args = zip params pArgs ++ vMap vararg
+  where (pArgs, vArg) = splitAt (length params) args
+        vMap (Just v) = [(v, List vArg)]
+        vMap Nothing  = []
 
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, PrimitiveFunction f))
@@ -56,25 +64,25 @@ first :: Fn
 first [List (x:xs)]   = return x
 first [Vector (x:xs)] = return x
 first [badArg]        = throwError $ TypeMismatch "list" badArg
-first badSingleArg    = throwError $ ArityError 1 badSingleArg
+first badSingleArg    = throwError $ ArityError 1 False badSingleArg
 
 rest :: Fn
 rest [List (x:xs)]   = return $ List xs
 rest [Vector (x:xs)] = return $ List xs
 rest [badArg]        = throwError $ TypeMismatch "list" badArg
-rest badSingleArg    = throwError $ ArityError 1 badSingleArg
+rest badSingleArg    = throwError $ ArityError 1 False badSingleArg
 
 conj :: Fn
 conj [List xs, v]   = return . List $ v:xs
 conj [Vector xs, v] = return . Vector $ xs ++ [v]
 conj [badArg, v]    = throwError $ TypeMismatch "list" badArg
-conj badSingleArg   = throwError $ ArityError 2 badSingleArg
+conj badSingleArg   = throwError $ ArityError 2 False badSingleArg
 
 cons :: Fn
 cons [v, List xs]   = return $ List (v:xs)
 cons [v, Vector xs] = return $ List (v:xs)
 cons [v, badArg]    = throwError $ TypeMismatch "list" badArg
-cons badSingleArg   = throwError $ ArityError 2 badSingleArg
+cons badSingleArg   = throwError $ ArityError 2 False badSingleArg
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
@@ -84,7 +92,7 @@ boolBoolUnFn = unFn unpackBool Bool
 
 binFn :: (Expr -> Action a) -> (b -> Expr) -> (a -> a -> b) -> [Expr] -> Action Expr
 binFn unpacker packer fn args = if length args /= 2
-                                then throwError $ ArityError 2 args
+                                then throwError $ ArityError 2 False args
                                 else do left  <- unpacker $ args !! 0
                                         right <- unpacker $ args !! 1
                                         return . packer $ fn left right
@@ -93,14 +101,15 @@ unFn :: (Expr -> Action a) -> (b -> Expr) -> (a -> b) -> [Expr] -> Action Expr
 unFn unpacker packer fn [arg] = do
   a <- unpacker arg
   return . packer $ fn a
-unFn unpacker packer fn xs    = throwError $ ArityError 1 xs
+unFn unpacker packer fn xs    = throwError $ ArityError 1 False xs
 
-forceArity :: Int -> [Expr] -> Action ()
-forceArity exp fnd | exp == (length fnd) = return ()
-forceArity exp fnd = throwError $ ArityError exp fnd
+forceArity :: Int -> Bool -> [Expr] -> Action ()
+forceArity exp False fnd | exp == (length fnd) = return ()
+forceArity exp True fnd  | exp <= (length fnd) = return ()
+forceArity exp var fnd = throwError $ ArityError exp var fnd
 
-argsVector :: [Expr] -> Action [String]
-argsVector params = mapM symbolName params
+argsVector :: [Expr] -> Action ([String], Maybe String)
+argsVector params = mapM symbolName params >>= argsAndVararg
 
 unpackNumber :: Expr -> Action Int
 unpackNumber (Number n) = return n
@@ -113,6 +122,12 @@ unpackBool v        = throwError $ TypeMismatch "bool" v
 symbolName :: Expr -> Action String
 symbolName (Symbol a) = return a
 symbolName v          = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
+
+argsAndVararg :: [String] -> Action ([String], Maybe String)
+argsAndVararg = ensureOneVararg . break (== "&")
+  where ensureOneVararg (xs, []) = return (xs, Nothing)
+        ensureOneVararg (xs, ["&", var]) = return (xs, Just var)
+        ensureOneVararg (xs, badVar) = throwError $ BadSpecialForm "Invalid variadic binding, expected '&' followed by one symbol, got" (Vector $ map Symbol xs ++ map Symbol badVar)
 
 isList :: Expr -> Bool
 isList (List _) = True
