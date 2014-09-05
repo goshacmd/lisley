@@ -54,31 +54,38 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction f))
    ("first", first),
    ("rest", rest),
    ("conj", conj),
-   ("cons", cons)]
+   ("cons", cons),
+   ("keyword", keyword)]
 
 first :: Fn
 first [List (x:xs)]   = return x
 first [Vector (x:xs)] = return x
-first [badArg]        = throwError $ TypeMismatch "list" badArg
-first badSingleArg    = throwError $ ArityError 1 False badSingleArg
+first [badArg]        = throwError $ TypeMismatch "list or vector" badArg
+first badArgs         = throwError $ ArityError 1 False badArgs
 
 rest :: Fn
 rest [List (x:xs)]   = return $ List xs
 rest [Vector (x:xs)] = return $ List xs
-rest [badArg]        = throwError $ TypeMismatch "list" badArg
-rest badSingleArg    = throwError $ ArityError 1 False badSingleArg
+rest [badArg]        = throwError $ TypeMismatch "list or vector" badArg
+rest badArgs         = throwError $ ArityError 1 False badArgs
 
 conj :: Fn
 conj [List xs, v]   = return . List $ v:xs
 conj [Vector xs, v] = return . Vector $ xs ++ [v]
-conj [badArg, v]    = throwError $ TypeMismatch "list" badArg
-conj badSingleArg   = throwError $ ArityError 2 False badSingleArg
+conj [badArg, v]    = throwError $ TypeMismatch "list or vector" badArg
+conj badArgs        = throwError $ ArityError 2 False badArgs
 
 cons :: Fn
 cons [v, List xs]   = return $ List (v:xs)
 cons [v, Vector xs] = return $ List (v:xs)
-cons [v, badArg]    = throwError $ TypeMismatch "list" badArg
-cons badSingleArg   = throwError $ ArityError 2 False badSingleArg
+cons [v, badArg]    = throwError $ TypeMismatch "list or vector" badArg
+cons badArgs        = throwError $ ArityError 2 False badArgs
+
+keyword :: Fn
+keyword [Symbol x] = return $ Keyword x
+keyword [String x] = return $ Keyword x
+keyword [badArg]   = throwError $ TypeMismatch "symbol or string" badArg
+keyword badArgs    = throwError $ ArityError 1 False badArgs
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
