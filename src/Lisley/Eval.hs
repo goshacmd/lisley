@@ -2,18 +2,23 @@ module Lisley.Eval where
 
 import Lisley.Types
 import Data.List (break, nub)
+import Data.List.Split (chunksOf)
 import Data.Maybe (maybe, isJust)
+import Control.Arrow ((&&&))
 
 eval :: Env -> Expr -> Action Expr
 eval env n@(Number _)  = return n
 eval env k@(Keyword _) = return k
 eval env s@(String _)  = return s
 eval env b@(Bool _)    = return b
-eval env v@(Vector _)  = return v
+eval env v@(Vector xs) = mapM (eval env) xs >>= return . Vector
 eval env (List [Symbol "quote", v]) = return v
 eval env (List (Symbol "do" : exprs)) = mapM (eval env) exprs >>= return . last
-eval env (List (Symbol "let" : Vector [b1, v1] : body)) =
-  eval env $ List [List $ [Symbol "fn", Vector [b1]] ++ body, v1]
+eval env (List (Symbol "let" : Vector bindings : body)) = do
+  if even $ length bindings
+  then eval env . List $ (List $ [Symbol "fn", Vector bs] ++ body) : vs
+  else throwError $ BadSpecialForm "let requires an even number of forms in bindings vector" (Vector bindings)
+  where (bs, vs) = (map head &&& map (head . tail)) . chunksOf 2 $ bindings
 eval env (List (Symbol "fn" : Symbol name : Vector params : body)) = do
   (bindings, variadic) <- argsVector params
   return $ Function name bindings variadic (List $ [Symbol "do"] ++ body) env
