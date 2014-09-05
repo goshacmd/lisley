@@ -55,7 +55,8 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction f))
    ("rest", rest),
    ("conj", conj),
    ("cons", cons),
-   ("keyword", keyword)]
+   ("keyword", keyword),
+   ("name", name)]
 
 first :: Fn
 first [List (x:xs)]   = return x
@@ -86,6 +87,13 @@ keyword [Symbol x] = return $ Keyword x
 keyword [String x] = return $ Keyword x
 keyword [badArg]   = throwError $ TypeMismatch "symbol or string" badArg
 keyword badArgs    = throwError $ ArityError 1 False badArgs
+
+name :: Fn
+name [String x]  = return $ String x
+name [Symbol x]  = return $ String x
+name [Keyword x] = return $ String x
+name [badArg]    = throwError $ TypeMismatch "string, symbol, or keyword" badArg
+name badArgs     = throwError $ ArityError 1 False badArgs
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
