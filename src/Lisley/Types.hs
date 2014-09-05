@@ -13,6 +13,7 @@ data Expr = Symbol String
           | List [Expr]
           | Vector [Expr]
           | Number Int
+          | Keyword String
           | String String
           | Bool Bool
           | PrimitiveFunction Fn
@@ -32,6 +33,7 @@ type Env = [(String, Expr)]
 showExpr :: Expr -> String
 showExpr (Symbol a)            = a
 showExpr (Number n)            = show n
+showExpr (Keyword k)           = ":" ++ k
 showExpr (String s)            = show s
 showExpr (Bool b)              = if b then "true" else "false"
 showExpr (List xs)             = "(" ++ unwordsCol xs ++ ")"

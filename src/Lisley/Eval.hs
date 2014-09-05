@@ -5,10 +5,11 @@ import Data.List (break, nub)
 import Data.Maybe (maybe, isJust)
 
 eval :: Env -> Expr -> Action Expr
-eval env n@(Number _) = return n
-eval env s@(String _) = return s
-eval env b@(Bool _)   = return b
-eval env v@(Vector _) = return v
+eval env n@(Number _)  = return n
+eval env k@(Keyword _) = return k
+eval env s@(String _)  = return s
+eval env b@(Bool _)    = return b
+eval env v@(Vector _)  = return v
 eval env (List [Symbol "fn", Vector params, body]) = do
   (bindings, variadic) <- argsVector params
   return $ Function bindings variadic body env

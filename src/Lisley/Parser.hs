@@ -7,12 +7,21 @@ import Text.ParserCombinators.Parsec hiding (string)
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
+keywordSymbol :: Parser Char
+keywordSymbol = oneOf "!#$%&|*+-/<=>?^_~"
+
 string :: Parser Expr
 string = do
   char '"'
   x <- many (noneOf "\"")
   char '"'
   return $ String x
+
+keyword :: Parser Expr
+keyword = do
+  char ':'
+  x <- many1 (letter <|> keywordSymbol <|> digit)
+  return $ Keyword x
 
 atom :: Parser Expr
 atom = do
@@ -40,6 +49,7 @@ quoted = do
 
 expr :: Parser Expr
 expr = string
+    <|> keyword
     <|> atom
     <|> number
     <|> quoted
