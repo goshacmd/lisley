@@ -8,11 +8,11 @@ eval env n@(Number _) = return n
 eval env s@(String _) = return s
 eval env b@(Bool _)   = return b
 eval env v@(Vector _) = return v
-eval env (List [Atom "fn", Vector params, body]) = do
+eval env (List [Symbol "fn", Vector params, body]) = do
   bindings <- argsVector params
   return $ Function bindings body env
-eval env (List [Atom "quote", v]) = return v
-eval env (List [Atom "if", pred, conseq, alt]) = do
+eval env (List [Symbol "quote", v]) = return v
+eval env (List [Symbol "if", pred, conseq, alt]) = do
   result <- eval env pred
   case result of
     Bool False -> eval env alt
@@ -21,7 +21,7 @@ eval env (List (fn : args)) = do
   f <- eval env fn
   params <- mapM (eval env) args
   apply env f params
-eval env (Atom a) = maybe (throwError $ UnboundSymbol a) return $ lookup a env
+eval env (Symbol a) = maybe (throwError $ UnboundSymbol a) return $ lookup a env
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: Env -> Expr -> [Expr] -> Action Expr
@@ -100,7 +100,7 @@ forceArity exp fnd | exp == (length fnd) = return ()
 forceArity exp fnd = throwError $ ArityError exp fnd
 
 argsVector :: [Expr] -> Action [String]
-argsVector params = mapM atomName params
+argsVector params = mapM symbolName params
 
 unpackNumber :: Expr -> Action Int
 unpackNumber (Number n) = return n
@@ -110,9 +110,9 @@ unpackBool :: Expr -> Action Bool
 unpackBool (Bool b) = return b
 unpackBool v        = throwError $ TypeMismatch "bool" v
 
-atomName :: Expr -> Action String
-atomName (Atom a) = return a
-atomName v        = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
+symbolName :: Expr -> Action String
+symbolName (Symbol a) = return a
+symbolName v          = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
 
 isList :: Expr -> Bool
 isList (List _) = True

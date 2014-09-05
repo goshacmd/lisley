@@ -21,7 +21,7 @@ atom = do
   let atom = first:rest in return $ case atom of
       "true"  -> Bool True
       "false" -> Bool False
-      _       -> Atom atom
+      _       -> Symbol atom
 
 number :: Parser Expr
 number = liftM (Number . read) $ many1 digit
@@ -36,7 +36,7 @@ quoted :: Parser Expr
 quoted = do
   char '\''
   x <- expr
-  return $ List [Atom "quote", x]
+  return $ List [Symbol "quote", x]
 
 expr :: Parser Expr
 expr = string
