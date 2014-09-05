@@ -1,6 +1,7 @@
 module Lisley.Eval where
 
 import Lisley.Types
+import Data.List (break, nub)
 import Data.Maybe (maybe, isJust)
 
 eval :: Env -> Expr -> Action Expr
@@ -111,7 +112,7 @@ fnArgs params vararg = (\(p, v) -> zip params p ++ vMap vararg v) . splitAt (len
         vMap Nothing  xs = []
 
 argsVector :: [Expr] -> Action ([String], Maybe String)
-argsVector params = mapM symbolName params >>= argsAndVararg
+argsVector params = mapM symbolName params >>= allSymbolsUnique >>= argsAndVararg
 
 unpackNumber :: Expr -> Action Int
 unpackNumber (Number n) = return n
@@ -125,6 +126,11 @@ symbolName :: Expr -> Action String
 symbolName (Symbol a) = return a
 symbolName v          = throwError $ BadSpecialForm "Symbols are expected in function parameters vector, got" v
 
+allSymbolsUnique :: [String] -> Action [String]
+allSymbolsUnique syms = if allUnique syms
+                        then return syms
+                        else throwError $ BadSpecialForm "All function argument bindings should be unique, got" (Vector $ map Symbol syms)
+
 argsAndVararg :: [String] -> Action ([String], Maybe String)
 argsAndVararg = oneVararg . break (== "&")
   where oneVararg (xs, [])         = return (xs, Nothing)
@@ -132,3 +138,6 @@ argsAndVararg = oneVararg . break (== "&")
         oneVararg (xs, badVar)     =
           throwError $ BadSpecialForm "Invalid variadic binding, expected '&' followed by one symbol, got"
                                       (Vector $ map Symbol xs ++ map Symbol badVar)
+
+allUnique :: Eq a => [a] -> Bool
+allUnique xs = length xs == length (nub xs)
