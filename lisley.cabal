@@ -12,7 +12,7 @@ cabal-version:       >=1.10
 executable lisley
   main-is: Main.hs
   hs-source-dirs: src
-  other-modules: Lisley.Types, Lisley.Parser, Lisley.Eval
+  other-modules: Lisley.Types, Lisley.Parser, Lisley.Eval, Lisley.Builtins
   -- other-extensions:
   build-depends: base >=4.7 && <4.8
                , parsec >=3.1 && <3.2

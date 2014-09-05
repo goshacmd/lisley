@@ -1,6 +1,8 @@
 import Lisley.Types
 import Lisley.Parser
 import Lisley.Eval
+import Lisley.Builtins
+
 import Text.Parsec
 import Control.Monad
 import System.IO
