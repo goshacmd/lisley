@@ -30,6 +30,7 @@ atom = do
   let atom = first:rest in return $ case atom of
       "true"  -> Bool True
       "false" -> Bool False
+      "nil"   -> Nil
       _       -> Symbol atom
 
 number :: Parser Expr

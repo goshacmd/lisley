@@ -17,6 +17,7 @@ data Expr = Symbol String
           | List [Expr]
           | Vector [Expr]
           | HashMap (Map Expr Expr)
+          | Nil
           | Number Int
           | Keyword String
           | String String
@@ -64,6 +65,7 @@ showExpr (Number n)  = show n
 showExpr (Keyword k) = ":" ++ k
 showExpr (String s)  = show s
 showExpr (Bool b)    = if b then "true" else "false"
+showExpr Nil         = "nil"
 showExpr (List xs)   = "(" ++ unwordsCol xs ++ ")"
 showExpr (Vector xs) = "[" ++ unwordsCol xs ++ "]"
 showExpr (HashMap m) = "{" ++ unwordsCol (Map.foldlWithKey (\acc key v -> acc ++ [key,v]) [] m) ++ "}"

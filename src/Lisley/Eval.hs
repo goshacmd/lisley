@@ -65,6 +65,7 @@ eval env n@(Number _)  = return n
 eval env k@(Keyword _) = return k
 eval env s@(String _)  = return s
 eval env b@(Bool _)    = return b
+eval env Nil           = return Nil
 eval env v@(Vector xs) = mapM (eval env) xs >>= return . Vector
 eval env (List [Symbol "quote", v]) = return v
 eval env (List [Symbol "def", Symbol sym, val]) =
@@ -81,6 +82,7 @@ eval env (List [Symbol "if", pred, conseq, alt]) = do
   result <- eval env pred
   case result of
     Bool False -> eval env alt
+    Nil        -> eval env alt
     otherwise  -> eval env conseq
 eval env (List (fn : args)) = do
   f <- eval env fn
@@ -97,7 +99,7 @@ apply env f@(Function name params vararg body closure) args = do
   eval newEnv body
   where a = fnArgs params vararg args
 apply env (HashMap m) [arg] =
-  return . fromMaybe (List []) $ Map.lookup arg m
+  return . fromMaybe Nil $ Map.lookup arg m
 apply env f args = throwError $ NotFunction "Not a function" (show f)
 
 arity :: Expr -> (Int, Bool)
