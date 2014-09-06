@@ -11,8 +11,8 @@ import System.Environment
 run :: String -> IO ()
 run expr = defaultEnv >>= flip evalAndPrint expr
 
-repl :: Env -> IO ()
-repl env = prompt "> " >>= evalAndPrint env >> repl env
+repl :: IO ()
+repl = defaultEnv >>= \env -> forever $ prompt "> " >>= evalAndPrint env
 
 main :: IO ()
 main = do
@@ -20,7 +20,7 @@ main = do
 
   case com of
     "eval"    -> run $ args !! 0
-    "repl"    -> defaultEnv >>= repl
+    "repl"    -> repl
     otherwise -> putStrLn $ "Unknown command: " ++ com
 
 prompt :: String -> IO String
