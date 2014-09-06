@@ -28,5 +28,5 @@ prompt p = putStr p >> hFlush stdout >> getLine
 
 evalAndPrint :: Env -> String -> IO ()
 evalAndPrint env expr =
-  (runAction . liftM show $ readExpr expr >>= eval env) >>= putStrLn
+  (runAction . liftM show $ readExpr expr >>= fullEval env) >>= putStrLn
 

@@ -89,7 +89,7 @@ fnApply :: Fn
 fnApply env (f:args) = apply env f args
 
 fnEval :: Fn
-fnEval env [expr]  = eval env expr
+fnEval env [expr]  = fullEval env expr
 fnEval env badArgs = throwError $ ArityError 1 False badArgs
 
 numNumBinFn = binFn unpackNumber Number

@@ -45,8 +45,8 @@ expands = [ ("let",  expandLet)
 canExpand :: String -> Bool
 canExpand s = elem s $ map fst expands
 
-expand :: String -> [Expr] -> Action Expr
-expand s exprs = ($ exprs) $ fromJust $ lookup s expands
+expand1 :: String -> [Expr] -> Action Expr
+expand1 s exprs = ($ exprs) $ fromJust $ lookup s expands
 
 expandLet:: [Expr] -> Action Expr
 expandLet (Vector bindings : body)
@@ -64,14 +64,22 @@ expandDefn (Symbol sym : bindings : body) =
 expandDefn badForm =
   throwError $ BadSpecialForm "defn requires a function name, a vector of bindings, and the function body" $ List (Symbol "defn" : badForm)
 
+expand :: Expr -> Action Expr
+expand l@(List (Symbol s : exprs))
+  | canExpand s    = expand1 s exprs >>= expand
+expand (List xs)   = mapM expand xs >>= return . List
+expand (Vector xs) = mapM expand xs >>= return . Vector
+expand x           = return x
+
+fullEval :: Env -> Expr -> Action Expr
+fullEval env expr = expand expr >>= eval env
+
 eval :: Env -> Expr -> Action Expr
 eval env n@(Number _)  = return n
 eval env k@(Keyword _) = return k
 eval env s@(String _)  = return s
 eval env b@(Bool _)    = return b
 eval env v@(Vector xs) = mapM (eval env) xs >>= return . Vector
-eval env (List (Symbol s : exprs))
-  | canExpand s = expand s exprs >>= eval env
 eval env (List [Symbol "quote", v]) = return v
 eval env (List [Symbol "def", Symbol sym, val]) =
   eval env val >>= defineSymbol env sym
