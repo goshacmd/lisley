@@ -27,7 +27,7 @@ data LispError = ArityError Int Bool [Expr]
                | UnboundSymbol String
                | Parser ParseError
 
-type Action = Either LispError
+type Action = ErrorT LispError IO
 
 type Env = [(String, Expr)]
 
@@ -70,5 +70,5 @@ isVector _          = False
 
 trapError action = catchError action (return . show)
 
-extractValue :: Action a -> a
+extractValue :: Either a b -> b
 extractValue (Right val) = val

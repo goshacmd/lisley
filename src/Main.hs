@@ -8,16 +8,17 @@ import Control.Monad
 import System.IO
 import System.Environment
 
-run :: String -> String
-run input = case readExpr input >>= eval builtins of
-  Left err  -> "Got an error: " ++ show err
-  Right val -> show val
+run :: String -> IO ()
+run = evalAndPrint
 
 prompt :: String -> IO String
 prompt p = putStr p >> hFlush stdout >> getLine
 
+runAction :: Action String -> IO String
+runAction a = runErrorT (trapError a) >>= return . extractValue
+
 evalAndPrint :: String -> IO ()
-evalAndPrint e = (return . extractValue . trapError . liftM show $ readExpr e >>= eval builtins) >>= putStrLn
+evalAndPrint e = (runAction . liftM show $ readExpr e >>= eval builtins) >>= putStrLn
 
 repl :: IO ()
 repl = prompt "> " >>= evalAndPrint >> repl
@@ -27,6 +28,6 @@ main = do
   (com:args) <- getArgs
 
   case com of
-    "eval"    -> putStrLn (run (args !! 0))
+    "eval"    -> run $ args !! 0
     "repl"    -> repl
     otherwise -> putStrLn $ "Unknown command: " ++ com

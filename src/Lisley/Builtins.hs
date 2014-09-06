@@ -39,6 +39,7 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   , ("map",     fnMap)
   , ("eval",    fnEval)
   , ("fold",    fnFold)
+  , ("print",   fnPrint)
   ]
 
 colToList :: Expr -> Action [Expr]
@@ -84,6 +85,9 @@ fnMap env badArgs  = throwError $ ArityError 2 False badArgs
 fnFold :: Fn
 fnFold env [f, v, col] = colToList col >>= foldM (\acc curr -> apply env f [acc, curr]) v
 fnFold env badArgs     = throwError $ ArityError 3 False badArgs
+
+fnPrint :: Fn
+fnPrint env (s:rest) = liftIO (print s) >> return s
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
