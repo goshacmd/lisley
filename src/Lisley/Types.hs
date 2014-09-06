@@ -4,6 +4,8 @@ module Lisley.Types
   ) where
 
 import Data.Maybe
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.IORef
 import Control.Monad.Error
 import Text.ParserCombinators.Parsec (ParseError)
@@ -14,6 +16,7 @@ type Fn = Env -> SimpleFn
 data Expr = Symbol String
           | List [Expr]
           | Vector [Expr]
+          | HashMap (Map Expr Expr)
           | Number Int
           | Keyword String
           | String String
@@ -22,6 +25,7 @@ data Expr = Symbol String
           | Function { fName :: String, params :: [String], vararg :: Maybe String, body :: Expr, closure :: Env }
 
 data LispError = ArityError Int Bool [Expr]
+               | ArgumentError String [Expr]
                | TypeMismatch String Expr
                | NotFunction String String
                | BadSpecialForm String Expr
@@ -32,6 +36,28 @@ type Action = ErrorT LispError IO
 
 type Env = IORef [(String, IORef Expr)]
 
+instance Ord Expr where
+  (Symbol a)  `compare` (Symbol b)  = a `compare` b
+  (List a)    `compare` (List b)    = a `compare` b
+  (Vector a)  `compare` (Vector b)  = a `compare` b
+  (HashMap a) `compare` (HashMap b) = a `compare` b
+  (Number a)  `compare` (Number b)  = a `compare` b
+  (Keyword a) `compare` (Keyword b) = a `compare` b
+  (String a)  `compare` (String b)  = a `compare` b
+  (Bool a)    `compare` (Bool b)    = a `compare` b
+  other1      `compare` other2      = GT
+
+instance Eq Expr where
+  (Symbol a)  == (Symbol b)  = a == b
+  (List a)    == (List b)    = a == b
+  (Vector a)  == (Vector b)  = a == b
+  (HashMap a) == (HashMap b) = a == b
+  (Number a)  == (Number b)  = a == b
+  (Keyword a) == (Keyword b) = a == b
+  (String a)  == (String b)  = a == b
+  (Bool a)    == (Bool b)    = a == b
+  other1      == other2      = False
+
 showExpr :: Expr -> String
 showExpr (Symbol a)  = a
 showExpr (Number n)  = show n
@@ -40,6 +66,7 @@ showExpr (String s)  = show s
 showExpr (Bool b)    = if b then "true" else "false"
 showExpr (List xs)   = "(" ++ unwordsCol xs ++ ")"
 showExpr (Vector xs) = "[" ++ unwordsCol xs ++ "]"
+showExpr (HashMap m) = "{" ++ unwordsCol (Map.foldlWithKey (\acc key v -> acc ++ [key,v]) [] m) ++ "}"
 showExpr (PrimitiveFunction name f) =
   "#<primitive-fn:" ++ name ++ ">"
 showExpr (Function name params vararg body _) =
@@ -48,6 +75,7 @@ showExpr (Function name params vararg body _) =
 showError :: LispError -> String
 showError (ArityError exp var fnd) =
   "Expected " ++ show exp ++ (if var then "+" else "") ++ " args, found " ++ show (length fnd) ++ " args: " ++ "(" ++ unwordsCol fnd ++ ")"
+showError (ArgumentError msg exprs) = msg ++ ": " ++ unwordsCol exprs
 showError (TypeMismatch exp fnd) = "Invalid type: expected " ++ exp ++ ", found " ++ show fnd
 showError (NotFunction msg fn)   = msg ++ ": " ++ show fn
 showError (BadSpecialForm msg f) = msg ++ ": " ++ show f

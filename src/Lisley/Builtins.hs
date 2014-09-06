@@ -2,6 +2,8 @@ module Lisley.Builtins where
 
 import Lisley.Types
 import Lisley.Eval
+import qualified Data.Map as Map
+import Data.List.Split (chunksOf)
 
 defaultEnv :: IO Env
 defaultEnv = emptyEnv >>= flip bindSymbols builtins
@@ -30,6 +32,7 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   , ("conj",    const conj)
   , ("cons",    const cons)
   , ("keyword", const keyword)
+  , ("hash-map", const hashMap)
   , ("name",    const name)
   , ("apply",   fnApply)
   , ("map",     fnMap)
@@ -37,6 +40,11 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   , ("fold",    fnFold)
   , ("print",   fnPrint)
   ]
+
+hashMap :: [Expr] -> Action Expr
+hashMap kvs
+  | even (length kvs) = return . HashMap . Map.fromList . map (\[k, v] -> (k, v)) $ chunksOf 2 kvs
+  | otherwise         = throwError $ ArgumentError "hash-map expected an even number of arguments, got" kvs
 
 colToList :: Expr -> Action [Expr]
 colToList (List xs)   = return xs

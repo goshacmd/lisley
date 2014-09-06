@@ -2,9 +2,10 @@ module Lisley.Eval where
 
 import Lisley.Types
 import Data.IORef
-import Data.List (break, nub)
+import Data.List
 import Data.List.Split (chunksOf)
-import Data.Maybe (maybe, isJust, fromJust)
+import Data.Maybe
+import qualified Data.Map as Map
 import Control.Arrow ((&&&))
 
 isBound :: Env -> String -> IO Bool
@@ -110,6 +111,8 @@ apply env f@(Function name params vararg body closure) args = do
   newEnv <- liftIO $ bindSymbols env a
   eval newEnv body
   where a = fnArgs params vararg args
+apply env (HashMap m) [arg] =
+  return . fromMaybe (List []) $ Map.lookup arg m
 apply env f args = throwError $ NotFunction "Not a function" (show f)
 
 arity :: Expr -> (Int, Bool)

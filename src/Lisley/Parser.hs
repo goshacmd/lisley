@@ -55,6 +55,13 @@ anonymousFn = do
   char ')'
   return $ List [Symbol "fn", Vector [Symbol "%"], body]
 
+hashMap :: Parser Expr
+hashMap = do
+  char '{'
+  content <- try $ sepBy expr spaces
+  char '}'
+  return $ List (Symbol "hash-map" : content)
+
 expr :: Parser Expr
 expr = string
     <|> keyword
@@ -62,6 +69,7 @@ expr = string
     <|> atom
     <|> number
     <|> quoted
+    <|> hashMap
     <|> do char '('
            x <- try list
            char ')'
