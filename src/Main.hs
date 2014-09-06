@@ -9,7 +9,10 @@ import System.IO
 import System.Environment
 
 run :: String -> IO ()
-run = evalAndPrint
+run expr = defaultEnv >>= flip evalAndPrint expr
+
+defaultEnv :: IO Env
+defaultEnv = emptyEnv >>= flip bindSymbols builtins
 
 prompt :: String -> IO String
 prompt p = putStr p >> hFlush stdout >> getLine
@@ -17,11 +20,12 @@ prompt p = putStr p >> hFlush stdout >> getLine
 runAction :: Action String -> IO String
 runAction a = runErrorT (trapError a) >>= return . extractValue
 
-evalAndPrint :: String -> IO ()
-evalAndPrint e = (runAction . liftM show $ readExpr e >>= eval builtins) >>= putStrLn
+evalAndPrint :: Env -> String -> IO ()
+evalAndPrint env expr =
+  (runAction . liftM show $ readExpr expr >>= eval env) >>= putStrLn
 
-repl :: IO ()
-repl = prompt "> " >>= evalAndPrint >> repl
+repl :: Env -> IO ()
+repl env = prompt "> " >>= evalAndPrint env >> repl env
 
 main :: IO ()
 main = do
@@ -29,5 +33,5 @@ main = do
 
   case com of
     "eval"    -> run $ args !! 0
-    "repl"    -> repl
+    "repl"    -> defaultEnv >>= repl
     otherwise -> putStrLn $ "Unknown command: " ++ com

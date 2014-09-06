@@ -3,7 +3,8 @@ module Lisley.Types
   , module Control.Monad.Error
   ) where
 
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe
+import Data.IORef
 import Control.Monad.Error
 import Text.ParserCombinators.Parsec (ParseError)
 
@@ -29,7 +30,7 @@ data LispError = ArityError Int Bool [Expr]
 
 type Action = ErrorT LispError IO
 
-type Env = [(String, Expr)]
+type Env = IORef [(String, IORef Expr)]
 
 showExpr :: Expr -> String
 showExpr (Symbol a)  = a
@@ -56,6 +57,9 @@ showError (Parser parseError)    = "Parse error at " ++ show parseError
 instance Show Expr where show = showExpr
 instance Show LispError where show = showError
 instance Error LispError
+
+emptyEnv :: IO Env
+emptyEnv = newIORef []
 
 unwordsCol :: [Expr] -> String
 unwordsCol = unwords . map showExpr

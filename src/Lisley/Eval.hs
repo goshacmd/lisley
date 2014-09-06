@@ -1,10 +1,41 @@
 module Lisley.Eval where
 
 import Lisley.Types
+import Data.IORef
 import Data.List (break, nub)
 import Data.List.Split (chunksOf)
 import Data.Maybe (maybe, isJust, fromJust)
 import Control.Arrow ((&&&))
+
+isBound :: Env -> String -> IO Bool
+isBound envRef sym = readIORef envRef >>= return . maybe False (const True) . lookup sym
+
+resolveSymbol :: Env -> String -> Action Expr
+resolveSymbol envRef sym = do
+  env <- liftIO $ readIORef envRef
+  maybe (throwError $ UnboundSymbol sym)
+        (liftIO . readIORef)
+        (lookup sym env)
+
+defineSymbol :: Env -> String -> Expr -> Action Expr
+defineSymbol envRef sym val = do
+  isDefined <- liftIO $ isBound envRef sym
+
+  if isDefined
+  then liftIO $ do
+    env <- readIORef envRef
+    flip writeIORef val . fromJust $ lookup sym env
+  else liftIO $ do
+    valRef <- newIORef val
+    modifyIORef envRef ((sym, valRef):)
+
+  return val
+
+bindSymbols :: Env -> [(String, Expr)] -> IO Env
+bindSymbols envRef bindings = readIORef envRef >>= extendEnv bindings >>= newIORef
+  where extendEnv bindings env = liftM (++ env) $ mapM addBinding bindings
+        addBinding (sym, val) = do ref <- newIORef val
+                                   return (sym, ref)
 
 expands :: [(String, [Expr] -> Action Expr)]
 expands = [ ("let", expandLet)
@@ -52,13 +83,15 @@ eval env (List (fn : args)) = do
   f <- eval env fn
   params <- mapM (eval env) args
   apply env f params
-eval env (Symbol a) = maybe (throwError $ UnboundSymbol a) return $ lookup a env
+eval env (Symbol a) = resolveSymbol env a
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: Env -> Expr -> [Expr] -> Action Expr
 apply env (PrimitiveFunction name f) args = f env args
-apply env f@(Function name params vararg body closure) args =
-  forceArity (arity f) args >> eval (a ++ env) body
+apply env f@(Function name params vararg body closure) args = do
+  forceArity (arity f) args
+  newEnv <- liftIO $ bindSymbols env a
+  eval newEnv body
   where a = fnArgs params vararg args
 apply env f args = throwError $ NotFunction "Not a function" (show f)
 
