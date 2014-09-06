@@ -3,8 +3,28 @@ module Lisley.Eval where
 import Lisley.Types
 import Data.List (break, nub)
 import Data.List.Split (chunksOf)
-import Data.Maybe (maybe, isJust)
+import Data.Maybe (maybe, isJust, fromJust)
 import Control.Arrow ((&&&))
+
+expands :: [(String, [Expr] -> Action Expr)]
+expands = [ ("let", expandLet)
+          ]
+
+canExpand :: String -> Bool
+canExpand s = elem s $ map fst expands
+
+expand :: String -> [Expr] -> Action Expr
+expand s exprs = ($ exprs) $ fromJust $ lookup s expands
+
+expandLet:: [Expr] -> Action Expr
+expandLet (Vector bindings : body)
+  | even (length bindings) =
+    return . List $ (List $ [Symbol "fn", Vector bs] ++ body) : vs
+  | otherwise =
+    throwError $ BadSpecialForm "let requires an even number of forms in bindings vector" (Vector bindings)
+  where (bs, vs) = (map head &&& map (head . tail)) . chunksOf 2 $ bindings
+expandLet badArgs =
+  throwError $ BadSpecialForm "let requires a vector of vindings" $ List (Symbol "let" : badArgs)
 
 eval :: Env -> Expr -> Action Expr
 eval env n@(Number _)  = return n
@@ -12,13 +32,11 @@ eval env k@(Keyword _) = return k
 eval env s@(String _)  = return s
 eval env b@(Bool _)    = return b
 eval env v@(Vector xs) = mapM (eval env) xs >>= return . Vector
+eval env (List (Symbol s : exprs))
+  | canExpand s = expand s exprs >>= eval env
 eval env (List [Symbol "quote", v]) = return v
-eval env (List (Symbol "do" : exprs)) = mapM (eval env) exprs >>= return . last
-eval env (List (Symbol "let" : Vector bindings : body)) = do
-  if even $ length bindings
-  then eval env . List $ (List $ [Symbol "fn", Vector bs] ++ body) : vs
-  else throwError $ BadSpecialForm "let requires an even number of forms in bindings vector" (Vector bindings)
-  where (bs, vs) = (map head &&& map (head . tail)) . chunksOf 2 $ bindings
+eval env (List (Symbol "do" : exprs)) =
+  mapM (eval env) exprs >>= return . last
 eval env (List (Symbol "fn" : Symbol name : Vector params : body)) = do
   (bindings, variadic) <- argsVector params
   return $ Function name bindings variadic (List $ [Symbol "do"] ++ body) env
