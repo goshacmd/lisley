@@ -56,7 +56,7 @@ first [col]   = colToList col >>= return . head
 first badArgs = throwError $ ArityError 1 False badArgs
 
 rest :: SimpleFn
-rest [col]   = colToList col >>= return . List
+rest [col]   = colToList col >>= return . List . tail
 rest badArgs = throwError $ ArityError 1 False badArgs
 
 conj :: SimpleFn
