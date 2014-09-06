@@ -11,7 +11,7 @@ $ lisley
 
 ### To Do
 
-* `def` and proper scoping
+* proper scoping
 * multi-arity functions
 * multi-argument anonymous function literal
 * proper vectors; sets, hash maps

@@ -38,7 +38,8 @@ bindSymbols envRef bindings = readIORef envRef >>= extendEnv bindings >>= newIOR
                                    return (sym, ref)
 
 expands :: [(String, [Expr] -> Action Expr)]
-expands = [ ("let", expandLet)
+expands = [ ("let",  expandLet)
+          , ("defn", expandDefn)
           ]
 
 canExpand :: String -> Bool
@@ -54,8 +55,14 @@ expandLet (Vector bindings : body)
   | otherwise =
     throwError $ BadSpecialForm "let requires an even number of forms in bindings vector" (Vector bindings)
   where (bs, vs) = (map head &&& map (head . tail)) . chunksOf 2 $ bindings
-expandLet badArgs =
-  throwError $ BadSpecialForm "let requires a vector of vindings" $ List (Symbol "let" : badArgs)
+expandLet badForm =
+  throwError $ BadSpecialForm "let requires a vector of vindings" $ List (Symbol "let" : badForm)
+
+expandDefn :: [Expr] -> Action Expr
+expandDefn (Symbol sym : bindings : body) =
+  return $ List [Symbol "def", Symbol sym, List $ [Symbol "fn", Symbol sym, bindings] ++ body]
+expandDefn badForm =
+  throwError $ BadSpecialForm "defn requires a function name, a vector of bindings, and the function body" $ List (Symbol "defn" : badForm)
 
 eval :: Env -> Expr -> Action Expr
 eval env n@(Number _)  = return n
@@ -66,6 +73,8 @@ eval env v@(Vector xs) = mapM (eval env) xs >>= return . Vector
 eval env (List (Symbol s : exprs))
   | canExpand s = expand s exprs >>= eval env
 eval env (List [Symbol "quote", v]) = return v
+eval env (List [Symbol "def", Symbol sym, val]) =
+  eval env val >>= defineSymbol env sym
 eval env (List (Symbol "do" : exprs)) =
   mapM (eval env) exprs >>= return . last
 eval env (List (Symbol "fn" : Symbol name : Vector params : body)) = do
