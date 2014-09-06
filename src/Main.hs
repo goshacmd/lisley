@@ -11,19 +11,6 @@ import System.Environment
 run :: String -> IO ()
 run expr = defaultEnv >>= flip evalAndPrint expr
 
-defaultEnv :: IO Env
-defaultEnv = emptyEnv >>= flip bindSymbols builtins
-
-prompt :: String -> IO String
-prompt p = putStr p >> hFlush stdout >> getLine
-
-runAction :: Action String -> IO String
-runAction a = runErrorT (trapError a) >>= return . extractValue
-
-evalAndPrint :: Env -> String -> IO ()
-evalAndPrint env expr =
-  (runAction . liftM show $ readExpr expr >>= eval env) >>= putStrLn
-
 repl :: Env -> IO ()
 repl env = prompt "> " >>= evalAndPrint env >> repl env
 
@@ -35,3 +22,11 @@ main = do
     "eval"    -> run $ args !! 0
     "repl"    -> defaultEnv >>= repl
     otherwise -> putStrLn $ "Unknown command: " ++ com
+
+prompt :: String -> IO String
+prompt p = putStr p >> hFlush stdout >> getLine
+
+evalAndPrint :: Env -> String -> IO ()
+evalAndPrint env expr =
+  (runAction . liftM show $ readExpr expr >>= eval env) >>= putStrLn
+

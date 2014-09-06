@@ -58,6 +58,9 @@ instance Show Expr where show = showExpr
 instance Show LispError where show = showError
 instance Error LispError
 
+runAction :: Action String -> IO String
+runAction a = runErrorT (trapError a) >>= return . extractValue
+
 emptyEnv :: IO Env
 emptyEnv = newIORef []
 

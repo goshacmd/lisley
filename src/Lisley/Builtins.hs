@@ -3,12 +3,8 @@ module Lisley.Builtins where
 import Lisley.Types
 import Lisley.Eval
 
-fnApply :: Fn
-fnApply env (f:args) = apply env f args
-
-fnEval :: Fn
-fnEval env [expr]  = eval env expr
-fnEval env badArgs = throwError $ ArityError 1 False badArgs
+defaultEnv :: IO Env
+defaultEnv = emptyEnv >>= flip bindSymbols builtins
 
 builtins :: [(String, Expr)]
 builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
@@ -88,6 +84,13 @@ fnFold env badArgs     = throwError $ ArityError 3 False badArgs
 
 fnPrint :: Fn
 fnPrint env (s:rest) = liftIO (print s) >> return s
+
+fnApply :: Fn
+fnApply env (f:args) = apply env f args
+
+fnEval :: Fn
+fnEval env [expr]  = eval env expr
+fnEval env badArgs = throwError $ ArityError 1 False badArgs
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
