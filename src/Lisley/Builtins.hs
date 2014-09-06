@@ -4,6 +4,7 @@ import Lisley.Types
 import Lisley.Eval
 import qualified Data.Map as Map
 import Data.List.Split (chunksOf)
+import Control.Arrow ((&&&))
 
 defaultEnv :: IO Env
 defaultEnv = emptyEnv >>= flip bindSymbols builtins
@@ -39,7 +40,26 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   , ("eval",    fnEval)
   , ("fold",    fnFold)
   , ("print",   fnPrint)
+
+  , ("let___macro", const expandLet)
+  , ("defn___macro", const expandDefn)
   ]
+
+expandLet:: [Expr] -> Action Expr
+expandLet (Vector bindings : body)
+  | even (length bindings) =
+    return . List $ (List $ [Symbol "fn", Vector bs] ++ body) : vs
+  | otherwise =
+    throwError $ BadSpecialForm "let requires an even number of forms in bindings vector" (Vector bindings)
+  where (bs, vs) = (map head &&& map (head . tail)) . chunksOf 2 $ bindings
+expandLet badForm =
+  throwError $ BadSpecialForm "let requires a vector of vindings" $ List (Symbol "let" : badForm)
+
+expandDefn :: [Expr] -> Action Expr
+expandDefn (Symbol sym : bindings : body) =
+  return $ List [Symbol "def", Symbol sym, List $ [Symbol "fn", Symbol sym, bindings] ++ body]
+expandDefn badForm =
+  throwError $ BadSpecialForm "defn requires a function name, a vector of bindings, and the function body" $ List (Symbol "defn" : badForm)
 
 hashMap :: [Expr] -> Action Expr
 hashMap kvs

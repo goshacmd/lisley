@@ -3,10 +3,8 @@ module Lisley.Eval where
 import Lisley.Types
 import Data.IORef
 import Data.List
-import Data.List.Split (chunksOf)
 import Data.Maybe
 import qualified Data.Map as Map
-import Control.Arrow ((&&&))
 
 isBound :: Env -> String -> IO Bool
 isBound envRef sym = readIORef envRef >>= return . maybe False (const True) . lookup sym
@@ -38,42 +36,29 @@ bindSymbols envRef bindings = readIORef envRef >>= extendEnv bindings >>= newIOR
         addBinding (sym, val) = do ref <- newIORef val
                                    return (sym, ref)
 
-expands :: [(String, [Expr] -> Action Expr)]
-expands = [ ("let",  expandLet)
-          , ("defn", expandDefn)
-          ]
+macroName :: String -> String
+macroName = (++ "___macro")
 
-canExpand :: String -> Bool
-canExpand s = elem s $ map fst expands
+canExpand :: Env -> String -> IO Bool
+canExpand env = isBound env . macroName
 
-expand1 :: String -> [Expr] -> Action Expr
-expand1 s exprs = ($ exprs) $ fromJust $ lookup s expands
+expand1 :: Env -> String -> [Expr] -> Action Expr
+expand1 env sym exprs = resolveSymbol env (macroName sym) >>= flip (apply env) exprs
 
-expandLet:: [Expr] -> Action Expr
-expandLet (Vector bindings : body)
-  | even (length bindings) =
-    return . List $ (List $ [Symbol "fn", Vector bs] ++ body) : vs
-  | otherwise =
-    throwError $ BadSpecialForm "let requires an even number of forms in bindings vector" (Vector bindings)
-  where (bs, vs) = (map head &&& map (head . tail)) . chunksOf 2 $ bindings
-expandLet badForm =
-  throwError $ BadSpecialForm "let requires a vector of vindings" $ List (Symbol "let" : badForm)
-
-expandDefn :: [Expr] -> Action Expr
-expandDefn (Symbol sym : bindings : body) =
-  return $ List [Symbol "def", Symbol sym, List $ [Symbol "fn", Symbol sym, bindings] ++ body]
-expandDefn badForm =
-  throwError $ BadSpecialForm "defn requires a function name, a vector of bindings, and the function body" $ List (Symbol "defn" : badForm)
-
-expand :: Expr -> Action Expr
-expand l@(List (Symbol s : exprs))
-  | canExpand s    = expand1 s exprs >>= expand
-expand (List xs)   = mapM expand xs >>= return . List
-expand (Vector xs) = mapM expand xs >>= return . Vector
-expand x           = return x
+expand :: Env -> Expr -> Action Expr
+expand env form =
+  case form of
+    List (Symbol s : exprs) -> do
+      isExpandable <- liftIO $ canExpand env s
+      if isExpandable
+      then expand1 env s exprs >>= expand env
+      else mapM (expand env) (Symbol s : exprs) >>= return . List
+    List xs -> mapM (expand env) xs >>= return . List
+    Vector xs -> mapM (expand env) xs >>= return . Vector
+    otherwise -> return form
 
 fullEval :: Env -> Expr -> Action Expr
-fullEval env expr = expand expr >>= eval env
+fullEval env expr = expand env expr >>= eval env
 
 eval :: Env -> Expr -> Action Expr
 eval env n@(Number _)  = return n
