@@ -41,17 +41,18 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   , ("fold",    fnFold)
   ]
 
+colToList :: Expr -> Action [Expr]
+colToList (List xs)   = return xs
+colToList (Vector xs) = return xs
+colToList badArg      = throwError $ TypeMismatch "list or vector" badArg
+
 first :: SimpleFn
-first [List (x:xs)]   = return x
-first [Vector (x:xs)] = return x
-first [badArg]        = throwError $ TypeMismatch "list or vector" badArg
-first badArgs         = throwError $ ArityError 1 False badArgs
+first [col]   = colToList col >>= return . head
+first badArgs = throwError $ ArityError 1 False badArgs
 
 rest :: SimpleFn
-rest [List (x:xs)]   = return $ List xs
-rest [Vector (x:xs)] = return $ List xs
-rest [badArg]        = throwError $ TypeMismatch "list or vector" badArg
-rest badArgs         = throwError $ ArityError 1 False badArgs
+rest [col]   = colToList col >>= return . List
+rest badArgs = throwError $ ArityError 1 False badArgs
 
 conj :: SimpleFn
 conj [List xs, v]   = return . List $ v:xs
@@ -60,10 +61,8 @@ conj [badArg, v]    = throwError $ TypeMismatch "list or vector" badArg
 conj badArgs        = throwError $ ArityError 2 False badArgs
 
 cons :: SimpleFn
-cons [v, List xs]   = return $ List (v:xs)
-cons [v, Vector xs] = return $ List (v:xs)
-cons [v, badArg]    = throwError $ TypeMismatch "list or vector" badArg
-cons badArgs        = throwError $ ArityError 2 False badArgs
+cons [v, col] = colToList col >>= return . List . (v:)
+cons badArgs  = throwError $ ArityError 2 False badArgs
 
 keyword :: SimpleFn
 keyword [Symbol x] = return $ Keyword x
@@ -79,16 +78,12 @@ name [badArg]    = throwError $ TypeMismatch "string, symbol, or keyword" badArg
 name badArgs     = throwError $ ArityError 1 False badArgs
 
 fnMap :: Fn
-fnMap env [f, List xs]   = mapM (apply env f . return) xs >>= return . List
-fnMap env [f, Vector xs] = mapM (apply env f . return) xs >>= return . List
-fnMap env [f, badArg]    = throwError $ TypeMismatch "list or vector" badArg
-fnMap env badArgs        = throwError $ ArityError 2 False badArgs
+fnMap env [f, col] = colToList col >>= mapM (apply env f . return) >>= return . List
+fnMap env badArgs  = throwError $ ArityError 2 False badArgs
 
 fnFold :: Fn
-fnFold env [f, v, List xs]   = foldM (\acc curr -> apply env f [acc, curr]) v xs
-fnFold env [f, v, Vector xs] = foldM (\acc curr -> apply env f [acc, curr]) v xs
-fnFold env [f, v, badArg]    = throwError $ TypeMismatch "list or vector" badArg
-fnFold env badArgs           = throwError $ ArityError 3 False badArgs
+fnFold env [f, v, col] = colToList col >>= foldM (\acc curr -> apply env f [acc, curr]) v
+fnFold env badArgs     = throwError $ ArityError 3 False badArgs
 
 numNumBinFn = binFn unpackNumber Number
 numBoolBinFn = binFn unpackNumber Bool
