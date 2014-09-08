@@ -33,6 +33,7 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   , ("rest",    const rest)
   , ("conj",    const conj)
   , ("cons",    const cons)
+  , ("count",   const count)
   , ("keyword", const keyword)
   , ("hash-map", const hashMap)
   , ("name",    const name)
@@ -89,6 +90,15 @@ conj badArgs        = throwError $ ArityError 2 False badArgs
 cons :: SimpleFn
 cons [v, col] = colToList col >>= return . List . (v:)
 cons badArgs  = throwError $ ArityError 2 False badArgs
+
+count :: SimpleFn
+count [List xs]   = return . Number $ length xs
+count [Vector xs] = return . Number $ length xs
+count [HashMap m] = return . Number $ Map.size m
+count [String s]  = return . Number $ length s
+count [Nil]       = return $ Number 0
+count [badArg]    = throwError $ TypeMismatch "countable" badArg
+count badArgs     = throwError $ ArityError 1 False badArgs
 
 keyword :: SimpleFn
 keyword [Symbol x] = return $ Keyword x
