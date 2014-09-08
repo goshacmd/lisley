@@ -99,11 +99,18 @@ unwordsCol = unwords . map showExpr
 
 isList :: Expr -> Bool
 isList (List _) = True
-isList _        = False
+isList notList  = False
 
 isVector :: Expr -> Bool
 isVector (Vector _) = True
-isVector _          = False
+isVector notVector  = False
+
+isHashMap :: Expr -> Bool
+isHashMap (HashMap _) = True
+isHashMap notHashmap  = False
+
+isCol :: Expr -> Bool
+isCol x = isList x || isVector x || isHashMap x
 
 trapError action = catchError action (return . show)
 
