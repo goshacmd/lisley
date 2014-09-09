@@ -112,6 +112,11 @@ isHashMap notHashmap  = False
 isCol :: Expr -> Bool
 isCol x = isList x || isVector x || isHashMap x
 
+isFn :: Expr -> Bool
+isFn (PrimitiveFunction _ _) = True
+isFn (Function _ _ _ _ _)    = True
+isFn notFunction             = False
+
 trapError action = catchError action (return . show)
 
 extractValue :: Either a b -> b
