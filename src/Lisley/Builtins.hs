@@ -44,24 +44,24 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   , ("fold",    fnFold)
   , ("print",   fnPrint)
 
-  , ("let___macro", const expandLet)
-  , ("defn___macro", const expandDefn)
+  , ("let___macro", const macroLet)
+  , ("defn___macro", const macroDefn)
   ]
 
-expandLet:: [Expr] -> Action Expr
-expandLet (Vector bindings : body)
+macroLet:: [Expr] -> Action Expr
+macroLet (Vector bindings : body)
   | even (length bindings) =
     return . List $ (List $ [Symbol "fn", Vector bs] ++ body) : vs
   | otherwise =
     throwError $ BadSpecialForm "let requires an even number of forms in bindings vector" (Vector bindings)
   where (bs, vs) = (map head &&& map (head . tail)) . chunksOf 2 $ bindings
-expandLet badForm =
+macroLet badForm =
   throwError $ BadSpecialForm "let requires a vector of vindings" $ List (Symbol "let" : badForm)
 
-expandDefn :: [Expr] -> Action Expr
-expandDefn (Symbol sym : bindings : body) =
+macroDefn :: [Expr] -> Action Expr
+macroDefn (Symbol sym : bindings : body) =
   return $ List [Symbol "def", Symbol sym, List $ [Symbol "fn", Symbol sym, bindings] ++ body]
-expandDefn badForm =
+macroDefn badForm =
   throwError $ BadSpecialForm "defn requires a function name, a vector of bindings, and the function body" $ List (Symbol "defn" : badForm)
 
 hashMap :: [Expr] -> Action Expr
