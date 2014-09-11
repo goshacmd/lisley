@@ -5,6 +5,7 @@ import Data.IORef
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
+import Control.Applicative ((<$>))
 
 isBound :: Env -> String -> IO Bool
 isBound envRef sym = readIORef envRef >>= return . maybe False (const True) . lookup sym
@@ -52,9 +53,9 @@ expand env form =
       isExpandable <- liftIO $ canExpand env s
       if isExpandable
       then expand1 env s exprs >>= expand env
-      else mapM (expand env) (Symbol s : exprs) >>= return . List
-    List xs -> mapM (expand env) xs >>= return . List
-    Vector xs -> mapM (expand env) xs >>= return . Vector
+      else List <$> mapM (expand env) (Symbol s : exprs)
+    List xs -> List <$> mapM (expand env) xs
+    Vector xs -> Vector <$> mapM (expand env) xs
     otherwise -> return form
 
 fullEval :: Env -> Expr -> Action Expr
@@ -66,12 +67,12 @@ eval env k@(Keyword _) = return k
 eval env s@(String _)  = return s
 eval env b@(Bool _)    = return b
 eval env Nil           = return Nil
-eval env v@(Vector xs) = mapM (eval env) xs >>= return . Vector
+eval env v@(Vector xs) = Vector <$> mapM (eval env) xs
 eval env (List [Symbol "quote", v]) = return v
 eval env (List [Symbol "def", Symbol sym, val]) =
   eval env val >>= defineSymbol env sym
 eval env (List (Symbol "do" : exprs)) =
-  mapM (eval env) exprs >>= return . last
+  last <$> mapM (eval env) exprs
 eval env (List (Symbol "fn" : Symbol name : Vector params : body)) = do
   (bindings, variadic) <- argsVector params
   return $ Function name bindings variadic (List $ [Symbol "do"] ++ body) env

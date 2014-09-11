@@ -8,6 +8,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.IORef
 import Control.Monad.Error
+import Control.Applicative ((<$>))
 import Text.ParserCombinators.Parsec (ParseError)
 
 type SimpleFn = [Expr] -> Action Expr
@@ -89,7 +90,7 @@ instance Show LispError where show = showError
 instance Error LispError
 
 runAction :: Action String -> IO String
-runAction a = runErrorT (trapError a) >>= return . extractValue
+runAction a = extractValue <$> runErrorT (trapError a)
 
 emptyEnv :: IO Env
 emptyEnv = newIORef []

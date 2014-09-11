@@ -4,6 +4,7 @@ import Lisley.Types
 import Lisley.Eval
 import qualified Data.Map as Map
 import Data.List.Split (chunksOf)
+import Control.Applicative ((<$>))
 import Control.Arrow ((&&&))
 
 defaultEnv :: IO Env
@@ -75,11 +76,11 @@ colToList (Vector xs) = return xs
 colToList badArg      = throwError $ TypeMismatch "list or vector" badArg
 
 first :: SimpleFn
-first [col]   = colToList col >>= return . head
+first [col]   = head <$> colToList col
 first badArgs = throwError $ ArityError 1 False badArgs
 
 rest :: SimpleFn
-rest [col]   = colToList col >>= return . List . tail
+rest [col]   = List . tail <$> colToList col
 rest badArgs = throwError $ ArityError 1 False badArgs
 
 conj :: SimpleFn
@@ -89,7 +90,7 @@ conj [badArg, v]    = throwError $ TypeMismatch "list or vector" badArg
 conj badArgs        = throwError $ ArityError 2 False badArgs
 
 cons :: SimpleFn
-cons [v, col] = colToList col >>= return . List . (v:)
+cons [v, col] = List . (v:) <$> colToList col
 cons badArgs  = throwError $ ArityError 2 False badArgs
 
 count :: SimpleFn
