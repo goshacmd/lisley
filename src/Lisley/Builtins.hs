@@ -135,7 +135,8 @@ fnPrint :: Fn
 fnPrint env (s:rest) = liftIO (print s) >> return s
 
 fnApply :: Fn
-fnApply env (f:args) = apply env f args
+fnApply env [f, col] = colToList col >>= apply env f
+fnApply env badArgs = throwError $ ArityError 2 False badArgs
 
 fnEval :: Fn
 fnEval env [expr]  = fullEval env expr
