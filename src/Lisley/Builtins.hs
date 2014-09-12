@@ -49,6 +49,7 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
 
   , ("let___macro", const macroLet)
   , ("defn___macro", const macroDefn)
+  , ("defmacro___macro", const macroDefmacro)
   ]
 
 macroLet:: [Expr] -> Action Expr
@@ -66,6 +67,12 @@ macroDefn (Symbol sym : bindings : body) =
   return $ List [Symbol "def", Symbol sym, List $ [Symbol "fn", Symbol sym, bindings] ++ body]
 macroDefn badForm =
   throwError $ BadSpecialForm "defn requires a function name, a vector of bindings, and the function body" $ List (Symbol "defn" : badForm)
+
+macroDefmacro :: [Expr] -> Action Expr
+macroDefmacro (Symbol sym : bindings : body) =
+  return $ List [Symbol "def", Symbol (macroName sym), List $ [Symbol "fn", Symbol (macroName sym), bindings] ++ body]
+macroDefmacro badForm =
+  throwError $ BadSpecialForm "defmacro requires a macro name, a vector of bindings, and the macro body" $ List (Symbol "defmacfo" : badForm)
 
 hashMap :: [Expr] -> Action Expr
 hashMap kvs
