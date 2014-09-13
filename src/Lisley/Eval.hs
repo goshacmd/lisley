@@ -69,7 +69,7 @@ eval env b@(Bool _)    = return b
 eval env Nil           = return Nil
 eval env v@(Vector xs) = Vector <$> mapM (eval env) xs
 eval env (List [Symbol "quote", v]) = return v
-eval env (List (Symbol "defmacro" : Symbol sym : body) =
+eval env (List (Symbol "defmacro" : Symbol sym : body)) =
   defineSymbol sym (macroName sym)
 eval env (List [Symbol "def", Symbol sym, val]) =
   eval env val >>= defineSymbol env sym
