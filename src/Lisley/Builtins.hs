@@ -36,6 +36,7 @@ builtins = map (\(n, f) -> (n, PrimitiveFunction n f))
   , ("conj",    const conj)
   , ("cons",    const cons)
   , ("count",   const count)
+  , ("id",      const idFn)
   , ("list",    const list)
   , ("vector",  const vector)
   , ("keyword", const keyword)
@@ -110,6 +111,10 @@ count [String s]  = return . Number $ length s
 count [Nil]       = return $ Number 0
 count [badArg]    = throwError $ TypeMismatch "countable" badArg
 count badArgs     = throwError $ ArityError 1 False badArgs
+
+idFn :: SimpleFn
+idFn [x]     = return x
+idFn badArgs = throwError $ ArityError 1 False badArgs
 
 list :: SimpleFn
 list = return . List
